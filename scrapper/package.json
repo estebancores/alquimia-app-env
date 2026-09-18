@@ -1,0 +1,24 @@
+{
+  "name": "scrapper",
+  "version": "1.0.0",
+  "description": "Shopify product scraper with R2 image uploads and PostgreSQL storage",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "scrape": "node src/index.js",
+    "migrate": "knex migrate:latest",
+    "migrate:make": "knex migrate:make",
+    "rollback": "knex migrate:rollback",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1135.0",
+    "@aws-sdk/lib-storage": "^3.1135.0",
+    "axios": "^1.20.0",
+    "dotenv": "^18.0.0",
+    "knex": "^3.3.0",
+    "pg": "^8.23.0"
+  }
+}
