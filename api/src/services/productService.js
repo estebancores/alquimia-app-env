@@ -18,14 +18,27 @@ class ProductService {
     const query = db('products');
 
     if (filters.source_domain) query.where('source_domain', filters.source_domain);
-    if (filters.vendor) query.where('vendor', filters.vendor);
-    if (filters.product_type) query.where('product_type', filters.product_type);
+    if (filters.vendor) query.whereRaw('LOWER(vendor) LIKE LOWER(?)', [`%${filters.vendor}%`]);
+    if (filters.product_type) query.whereRaw('LOWER(product_type) LIKE LOWER(?)', [`%${filters.product_type}%`]);
     if (filters.status) query.where('status', filters.status);
+    if (filters.min_price != null || filters.max_price != null) {
+      query.whereExists(function () {
+        this.select(db.raw('1'))
+          .from('product_variants')
+          .whereRaw('product_variants.product_id = products.id')
+          .modify((q) => {
+            if (filters.min_price != null) q.andWhere('price', '>=', filters.min_price);
+            if (filters.max_price != null) q.andWhere('price', '<=', filters.max_price);
+          });
+      });
+    }
     if (filters.search) {
+      const term = `%${filters.search}%`;
       query.where(function () {
-        this.whereILike('title', `%${filters.search}%`)
-          .orWhereILike('handle', `%${filters.search}%`)
-          .orWhereILike('body_html', `%${filters.search}%`);
+        this.whereRaw('LOWER(title) LIKE LOWER(?)', [term])
+          .orWhereRaw('LOWER(handle) LIKE LOWER(?)', [term])
+          .orWhereRaw('LOWER(body_html) LIKE LOWER(?)', [term])
+          .orWhereRaw('LOWER(vendor) LIKE LOWER(?)', [term]);
       });
     }
 
@@ -46,12 +59,72 @@ class ProductService {
       baseQuery.clone().count('id as count').first()
     ]);
 
+    const productIds = rows.map((p) => p.id);
+    const [variants, images] = await Promise.all([
+      productIds.length ? db('product_variants').whereIn('product_id', productIds).orderBy('position', 'asc') : [],
+      productIds.length ? db('product_images').whereIn('product_id', productIds).orderBy('position', 'asc') : []
+    ]);
+
+    const products = rows.map((product) => ({
+      ...product,
+      variants: variants.filter((v) => v.product_id === product.id),
+      images: images.filter((img) => img.product_id === product.id)
+    }));
+
     return {
-      data: rows,
+      data: products,
       pagination: {
         page: Number(page),
         limit: Number(limit),
         total: Number(countResult?.count || 0)
+      }
+    };
+  }
+
+  async getFilterMeta() {
+    const priceRanges = [
+      { key: 'lt_50k', label: 'Below $50,000', min: null, max: 50000 },
+      { key: '50k_100k', label: '$50,000 - $100,000', min: 50000, max: 100000 },
+      { key: '100k_150k', label: '$100,000 - $150,000', min: 100000, max: 150000 },
+      { key: '150k_200k', label: '$150,000 - $200,000', min: 150000, max: 200000 },
+      { key: 'gte_200k', label: 'Above $200,000', min: 200000, max: null }
+    ];
+
+    const countInRange = ({ min, max }) =>
+      db('products')
+        .whereExists(function () {
+          this.select(db.raw('1'))
+            .from('product_variants')
+            .whereRaw('product_variants.product_id = products.id')
+            .modify((q) => {
+              if (min != null) q.andWhere('price', '>=', min);
+              if (max != null) q.andWhere('price', '<', max);
+            });
+        })
+        .count('id as count')
+        .first();
+
+    const [vendors, productTypes, sourceDomains, statuses, priceBounds, rangeCounts] = await Promise.all([
+      db('products').distinct('vendor').whereNotNull('vendor').orderBy('vendor'),
+      db('products').distinct('product_type').whereNotNull('product_type').orderBy('product_type'),
+      db('products').distinct('source_domain').whereNotNull('source_domain').orderBy('source_domain'),
+      db('products').distinct('status').whereNotNull('status').orderBy('status'),
+      db('product_variants').min('price as min').max('price as max').first(),
+      Promise.all(priceRanges.map(countInRange))
+    ]);
+
+    return {
+      vendors: vendors.map((row) => row.vendor),
+      product_types: productTypes.map((row) => row.product_type),
+      source_domains: sourceDomains.map((row) => row.source_domain),
+      statuses: statuses.map((row) => row.status),
+      price: {
+        min: priceBounds?.min != null ? Number(priceBounds.min) : 0,
+        max: priceBounds?.max != null ? Number(priceBounds.max) : 0,
+        ranges: priceRanges.map((range, index) => ({
+          ...range,
+          count: Number(rangeCounts[index]?.count || 0)
+        }))
       }
     };
   }

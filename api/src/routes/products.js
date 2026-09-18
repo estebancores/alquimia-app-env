@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Public read endpoints
 router.get('/', generalLimiter, productController.listValidators, productController.list);
+router.get('/meta', generalLimiter, productController.meta);
 router.get('/:id', generalLimiter, productController.get);
 
 // Admin write endpoints

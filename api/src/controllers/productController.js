@@ -8,7 +8,9 @@ const listValidators = [
   query('source_domain').optional().trim(),
   query('vendor').optional().trim(),
   query('product_type').optional().trim(),
-  query('status').optional().trim()
+  query('status').optional().trim(),
+  query('min_price').optional().isDecimal(),
+  query('max_price').optional().isDecimal()
 ];
 
 const createValidators = [
@@ -42,7 +44,9 @@ async function list(req, res, next) {
       vendor: req.query.vendor,
       product_type: req.query.product_type,
       status: req.query.status,
-      search: req.query.search
+      search: req.query.search,
+      min_price: req.query.min_price != null ? Number(req.query.min_price) : null,
+      max_price: req.query.max_price != null ? Number(req.query.max_price) : null
     };
 
     const options = {
@@ -52,6 +56,15 @@ async function list(req, res, next) {
 
     const result = await productService.list(filters, options);
     res.json({ success: true, data: result.data, pagination: result.pagination });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function meta(req, res, next) {
+  try {
+    const result = await productService.getFilterMeta();
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }
@@ -106,4 +119,4 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { listValidators, createValidators, updateValidators, list, get, create, update, remove };
+module.exports = { listValidators, createValidators, updateValidators, list, meta, get, create, update, remove };

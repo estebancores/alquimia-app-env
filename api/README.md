@@ -10,6 +10,7 @@ npm install
 cp .env.example .env
 # Fill in .env values
 npx knex migrate:latest
+npx knex seed:run
 npm start
 ```
 
@@ -21,6 +22,8 @@ npm start
 - `JWT_SECRET` — strong random string
 - `JWT_EXPIRES_IN` — e.g. `24h`
 - `CORS_ORIGIN` — allowed CORS origin(s)
+- `ADMIN_EMAIL` — email for the seeded admin user (defaults to `admin@alquimia.com`)
+- `ADMIN_PASSWORD` — password for the seeded admin user (defaults to `AdminPassword123!`)
 
 ## Endpoints
 

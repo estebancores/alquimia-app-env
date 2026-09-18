@@ -7,6 +7,9 @@ module.exports = {
     migrations: {
       directory: './migrations',
       tableName: 'knex_migrations_api'
+    },
+    seeds: {
+      directory: './seeds'
     }
   },
   production: {
@@ -15,6 +18,9 @@ module.exports = {
     migrations: {
       directory: './migrations',
       tableName: 'knex_migrations_api'
+    },
+    seeds: {
+      directory: './seeds'
     },
     pool: {
       min: 2,

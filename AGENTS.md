@@ -42,3 +42,92 @@ node src/index.js almamia.com
 - `src/services/r2Uploader.js` — downloads images and uploads them to Cloudflare R2
 - `src/config/db.js` — Knex database client
 - `migrations/` — Knex migration files
+
+## API
+
+The `api/` package is the REST API for products, images, and admin authentication.
+
+### Setup
+
+```bash
+cd api
+npm install
+cp .env.example .env
+# Fill in .env values
+npx knex migrate:latest
+```
+
+### Seeding an admin user
+
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env` (they default to local-development-only values), then run:
+
+```bash
+npx knex seed:run
+```
+
+This creates the first admin account so you can sign in from the `admin/` app.
+
+### Running the API
+
+```bash
+npm start
+```
+
+The API runs on the port defined by `PORT` (default `3001`).
+
+## Admin
+
+The `admin/` package is a Vue 3 SPA for managing the Alquimia store. It uses Vite, Vue Router, Pinia, and PrimeVue.
+
+### Setup
+
+```bash
+cd admin
+npm install
+cp .env.example .env
+```
+
+### Environment variables
+
+- `VITE_API_BASE_URL` — base URL of the `api` service (defaults to `/api`, proxied to `http://localhost:3001` in dev)
+
+### Running the admin app
+
+Make sure the `api` service is running and the admin seed has been applied, then:
+
+```bash
+npm run dev
+```
+
+The dev server runs on `http://localhost:5173` and proxies API calls to the backend running on port `3001`.
+
+### Default login
+
+After running `npx knex seed:run` in `api/`, the default admin credentials are:
+
+- Email: `admin@alquimia.com`
+- Password: `AdminPassword123!`
+
+Override these via `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `api/.env` before running the seed.
+
+### Build
+
+```bash
+npm run build
+```
+
+### Key files
+
+- `src/main.js` — Vue app entry point with Pinia, Vue Router, PrimeVue, Toast and Confirmation services
+- `src/router/index.js` — route definitions and auth guard
+- `src/services/api.js` — axios instance with JWT interceptor
+- `src/stores/auth.js` — login, logout, and current user state
+- `src/stores/product.js` — product CRUD operations via the API
+- `src/stores/order.js` — orders and delivery state (placeholder, wire to backend when ready)
+- `src/stores/settings.js` — application settings state
+- `src/components/layout/AppLayout.vue` — sidebar + topbar layout
+- `src/views/LoginView.vue` — simple login screen
+- `src/views/DashboardView.vue` — dashboard summary
+- `src/views/ProductsView.vue` — product list and CRUD dialog
+- `src/views/OrdersView.vue` — pending deliveries and scheduling dialog
+- `src/views/SettingsView.vue` — settings form
