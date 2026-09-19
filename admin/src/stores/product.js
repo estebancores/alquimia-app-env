@@ -56,6 +56,20 @@ export const useProductStore = defineStore('product', {
 
     async deleteProduct(id) {
       await api.delete(`/products/${id}`);
+    },
+
+    async addImage(productId, payload) {
+      const { data } = await api.post(`/products/${productId}/images`, payload);
+      return data.data;
+    },
+
+    async updateImage(id, payload) {
+      const { data } = await api.put(`/images/${id}`, payload);
+      return data.data;
+    },
+
+    async deleteImage(id) {
+      await api.delete(`/images/${id}`);
     }
   }
 });

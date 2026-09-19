@@ -9,6 +9,7 @@ const listValidators = [
   query('vendor').optional().trim(),
   query('product_type').optional().trim(),
   query('status').optional().trim(),
+  query('public').optional().isBoolean(),
   query('min_price').optional().isDecimal(),
   query('max_price').optional().isDecimal()
 ];
@@ -18,14 +19,33 @@ const createValidators = [
   body('shopify_product_id').notEmpty().isNumeric(),
   body('handle').notEmpty().trim(),
   body('title').notEmpty().trim(),
-  body('provider_price').optional().isDecimal(),
+  body('provider_price').optional({ values: 'falsy' }).isDecimal(),
+  body('public').optional().isBoolean().toBoolean(),
   body('status').optional().trim()
 ];
 
 const updateValidators = [
   body('title').optional().trim(),
-  body('provider_price').optional().isDecimal(),
-  body('status').optional().trim()
+  body('handle').optional({ values: 'null' }).trim(),
+  body('vendor').optional({ values: 'null' }).trim(),
+  body('product_type').optional({ values: 'null' }).trim(),
+  body('body_html').optional(),
+  body('tags').optional(),
+  body('provider_price').optional({ values: 'falsy' }).isDecimal(),
+  body('public').optional().isBoolean().toBoolean(),
+  body('status').optional({ values: 'null' }).trim(),
+  body('variants').optional().isArray(),
+  body('variants.*.id').notEmpty().isUUID(),
+  body('variants.*.title').optional({ values: 'null' }).trim(),
+  body('variants.*.sku').optional({ values: 'null' }).trim(),
+  body('variants.*.price').optional({ values: 'null' }).isDecimal(),
+  body('variants.*.compare_at_price').optional({ values: 'null' }).isDecimal(),
+  body('variants.*.image_id').optional({ values: 'null' }).isUUID(),
+  body('variants.*.position').optional().isInt(),
+  body('images').optional().isArray(),
+  body('images.*.id').notEmpty().isUUID(),
+  body('images.*.alt').optional({ values: 'null' }).trim(),
+  body('images.*.position').optional().isInt()
 ];
 
 function buildAuditContext(req) {
@@ -44,6 +64,7 @@ async function list(req, res, next) {
       vendor: req.query.vendor,
       product_type: req.query.product_type,
       status: req.query.status,
+      public: req.query.public,
       search: req.query.search,
       min_price: req.query.min_price != null ? Number(req.query.min_price) : null,
       max_price: req.query.max_price != null ? Number(req.query.max_price) : null

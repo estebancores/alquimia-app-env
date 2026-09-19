@@ -21,6 +21,9 @@ class ProductService {
     if (filters.vendor) query.whereRaw('LOWER(vendor) LIKE LOWER(?)', [`%${filters.vendor}%`]);
     if (filters.product_type) query.whereRaw('LOWER(product_type) LIKE LOWER(?)', [`%${filters.product_type}%`]);
     if (filters.status) query.where('status', filters.status);
+    if (filters.public !== undefined && filters.public !== null && filters.public !== '') {
+      query.where('public', filters.public === true || filters.public === 'true');
+    }
     if (filters.min_price != null || filters.max_price != null) {
       query.whereExists(function () {
         this.select(db.raw('1'))
@@ -152,6 +155,7 @@ class ProductService {
       product_type: payload.product_type || null,
       vendor: payload.vendor || null,
       status: payload.status || 'active',
+      public: payload.public !== undefined ? Boolean(payload.public) : true,
       provider_price: payload.provider_price != null ? Number(payload.provider_price) : null,
       tags: this.normalizeTags(payload.tags),
       shopify_published_at: this.parseDate(payload.shopify_published_at),
@@ -192,6 +196,7 @@ class ProductService {
       product_type: payload.product_type !== undefined ? payload.product_type : product.product_type,
       vendor: payload.vendor !== undefined ? payload.vendor : product.vendor,
       status: payload.status ?? product.status,
+      public: payload.public !== undefined ? Boolean(payload.public) : product.public,
       provider_price: payload.provider_price !== undefined
         ? (payload.provider_price != null ? Number(payload.provider_price) : null)
         : product.provider_price,
@@ -215,7 +220,81 @@ class ProductService {
       req
     });
 
-    return updated;
+    if (Array.isArray(payload.variants)) {
+      for (const variantPayload of payload.variants) {
+        if (!variantPayload?.id) continue;
+        const variant = await db('product_variants').where({ id: variantPayload.id, product_id: id }).first();
+        if (!variant) continue;
+
+        let imageId = variant.image_id;
+        if (variantPayload.image_id !== undefined) {
+          if (variantPayload.image_id === null) {
+            imageId = null;
+          } else {
+            const linkedImage = await db('product_images')
+              .where({ id: variantPayload.image_id, product_id: id })
+              .first('id');
+            if (linkedImage) imageId = variantPayload.image_id;
+          }
+        }
+
+        const variantUpdates = {
+          title: variantPayload.title !== undefined ? variantPayload.title : variant.title,
+          sku: variantPayload.sku !== undefined ? variantPayload.sku : variant.sku,
+          price: variantPayload.price !== undefined
+            ? (variantPayload.price != null ? Number(variantPayload.price) : null)
+            : variant.price,
+          compare_at_price: variantPayload.compare_at_price !== undefined
+            ? (variantPayload.compare_at_price != null ? Number(variantPayload.compare_at_price) : null)
+            : variant.compare_at_price,
+          position: variantPayload.position !== undefined ? variantPayload.position : variant.position,
+          image_id: imageId,
+          shopify_updated_at: new Date(),
+          updated_at: new Date()
+        };
+
+        const [updatedVariant] = await db('product_variants').where({ id: variant.id }).update(variantUpdates).returning('*');
+
+        await auditService.log({
+          userId,
+          productId: id,
+          action: 'UPDATE',
+          tableName: 'product_variants',
+          recordId: variant.id,
+          payload: { before: variant, after: updatedVariant },
+          req
+        });
+      }
+    }
+
+    if (Array.isArray(payload.images)) {
+      for (const imagePayload of payload.images) {
+        if (!imagePayload?.id) continue;
+        const image = await db('product_images').where({ id: imagePayload.id, product_id: id }).first();
+        if (!image) continue;
+
+        const imageUpdates = {
+          alt: imagePayload.alt !== undefined ? imagePayload.alt : image.alt,
+          position: imagePayload.position !== undefined ? imagePayload.position : image.position,
+          updated_at: new Date()
+        };
+
+        const [updatedImage] = await db('product_images').where({ id: image.id }).update(imageUpdates).returning('*');
+
+        await auditService.log({
+          userId,
+          productId: id,
+          imageId: image.id,
+          action: 'UPDATE',
+          tableName: 'product_images',
+          recordId: image.id,
+          payload: { before: image, after: updatedImage },
+          req
+        });
+      }
+    }
+
+    return this.getById(id);
   }
 
   async delete(id, { userId, req }) {

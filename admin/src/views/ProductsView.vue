@@ -1,185 +1,10 @@
-<template>
-  <div>
-    <div class="flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-      <div>
-        <div class="text-sm text-color-secondary mb-1">
-          Categories <i class="pi pi-angle-right text-xs"></i> {{ activeCategoryLabel }}
-        </div>
-        <div class="text-sm font-semibold">Showing all {{ productStore.total }} items results</div>
-      </div>
-      <div class="flex flex-wrap align-items-center gap-2">
-        <IconField>
-          <InputIcon class="pi pi-search" />
-          <InputText v-model="searchQuery" placeholder="Search..." class="w-14rem" />
-        </IconField>
-        <Button
-          icon="pi pi-filter"
-          label="Filter"
-          severity="secondary"
-          outlined
-          @click="filtersVisible = !filtersVisible"
-        />
-        <Button icon="pi pi-plus" label="New Product" @click="openNew" />
-      </div>
-    </div>
-
-    <div class="flex flex-column lg:flex-row gap-4 align-items-start">
-      <aside v-show="filtersVisible" class="filter-panel">
-        <Card>
-          <template #content>
-            <div class="flex flex-column gap-4">
-              <div>
-                <div class="filter-section-label">Categories</div>
-                <Dropdown
-                  v-model="draft.product_type"
-                  :options="categoryOptions"
-                  placeholder="All categories"
-                  class="w-full"
-                  show-clear
-                />
-              </div>
-
-              <div>
-                <div class="filter-section-label">Product Price</div>
-                <div class="flex flex-column gap-2">
-                  <div v-for="option in priceOptions" :key="option.key" class="flex align-items-center gap-2">
-                    <RadioButton v-model="draft.priceKey" :input-id="`price-${option.key}`" :value="option.key" @change="onPricePreset(option)" />
-                    <label :for="`price-${option.key}`" class="text-sm cursor-pointer">
-                      {{ option.label }}<span v-if="option.count != null" class="text-color-secondary"> ({{ option.count }})</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div class="filter-section-label">Custom Price Range : {{ formatPrice(draft.customRange[1]) }}</div>
-                <Slider v-model="draft.customRange" range :min="priceBounds.min" :max="priceBounds.max" class="mb-3" @slideend="draft.priceKey = 'custom'" />
-                <div class="flex gap-2">
-                  <InputNumber v-model="draft.customRange[0]" :min="priceBounds.min" :max="priceBounds.max" input-class="w-full" class="flex-1" @input="draft.priceKey = 'custom'" />
-                  <InputNumber v-model="draft.customRange[1]" :min="priceBounds.min" :max="priceBounds.max" input-class="w-full" class="flex-1" @input="draft.priceKey = 'custom'" />
-                </div>
-              </div>
-
-              <div>
-                <div class="filter-section-label">Vendor</div>
-                <Dropdown
-                  v-model="draft.vendor"
-                  :options="vendorOptions"
-                  placeholder="All vendors"
-                  class="w-full"
-                  show-clear
-                />
-              </div>
-
-              <div>
-                <div class="filter-section-label">Source</div>
-                <Dropdown
-                  v-model="draft.source_domain"
-                  :options="sourceOptions"
-                  placeholder="All sources"
-                  class="w-full"
-                  show-clear
-                />
-              </div>
-
-              <div class="flex flex-column gap-2">
-                <Button label="Apply" class="w-full" @click="applyDraft" />
-                <Button label="Clear filters" icon="pi pi-filter-slash" text class="w-full" @click="clearFilters" />
-              </div>
-            </div>
-          </template>
-        </Card>
-      </aside>
-
-      <div class="flex-1 min-w-0 w-full">
-        <div v-if="productStore.loading" class="grid">
-          <div v-for="n in 8" :key="n" class="col-12 sm:col-6 md:col-4 xl:col-3">
-            <div class="product-card p-0">
-              <Skeleton height="12rem" class="border-noround" />
-              <div class="p-3">
-                <Skeleton width="70%" class="mb-2" />
-                <Skeleton width="40%" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="productStore.products.length" class="grid">
-          <div v-for="product in productStore.products" :key="product.id" class="col-12 sm:col-6 md:col-4 xl:col-3">
-            <div class="product-card">
-              <div class="product-image">
-                <img v-if="productImage(product)" :src="productImage(product)" :alt="product.title" loading="lazy" />
-                <i v-else class="pi pi-image p-image-fallback"></i>
-              </div>
-              <div class="p-3 flex-1 flex flex-column">
-                <div class="product-title mb-1" :title="product.title">{{ product.title }}</div>
-                <div class="product-desc mb-3">{{ productDescription(product) }}</div>
-                <div class="mt-auto flex align-items-center justify-content-between">
-                  <span class="product-price">{{ productPrice(product) }}</span>
-                  <div class="flex gap-1">
-                    <Button icon="pi pi-pencil" text rounded size="small" @click="editProduct(product)" />
-                    <Button icon="pi pi-trash" text rounded size="small" severity="danger" @click="confirmDelete(product)" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Card v-else>
-          <template #content>
-            <div class="text-center py-6 text-color-secondary">
-              <i class="pi pi-inbox text-4xl mb-3"></i>
-              <div>No products match the current filters.</div>
-            </div>
-          </template>
-        </Card>
-
-        <Paginator
-          :rows="productStore.limit"
-          :first="(productStore.page - 1) * productStore.limit"
-          :total-records="productStore.total"
-          :rows-per-page-options="[12, 24, 48, 96]"
-          class="mt-3"
-          @page="onPage"
-        />
-      </div>
-    </div>
-
-    <Dialog v-model:visible="dialogVisible" :header="isEditing ? 'Edit Product' : 'New Product'" :style="{ width: '30rem' }" modal>
-      <div class="flex flex-column gap-3">
-        <div class="flex flex-column gap-2">
-          <label for="title">Title</label>
-          <InputText id="title" v-model="productForm.title" :class="{ 'p-invalid': formSubmitted && !productForm.title }" />
-        </div>
-        <div class="flex flex-column gap-2">
-          <label for="vendor">Vendor</label>
-          <InputText id="vendor" v-model="productForm.vendor" />
-        </div>
-        <div class="flex flex-column gap-2">
-          <label for="productType">Type</label>
-          <InputText id="productType" v-model="productForm.product_type" />
-        </div>
-        <div class="flex flex-column gap-2">
-          <label for="status">Status</label>
-          <Dropdown id="status" v-model="productForm.status" :options="statusOptions" option-label="label" option-value="value" />
-        </div>
-      </div>
-      <template #footer>
-        <Button label="Cancel" icon="pi pi-times" text @click="closeDialog" />
-        <Button label="Save" icon="pi pi-check" :loading="saving" @click="saveProduct" />
-      </template>
-    </Dialog>
-  </div>
-</template>
-
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
@@ -190,23 +15,15 @@ import Skeleton from 'primevue/skeleton';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import { useProductStore } from '@/stores/product';
+import { imageUrl } from '@/utils/image';
 
+const router = useRouter();
 const confirm = useConfirm();
 const toast = useToast();
 const productStore = useProductStore();
 
-const dialogVisible = ref(false);
-const isEditing = ref(false);
-const formSubmitted = ref(false);
-const saving = ref(false);
 const filtersVisible = ref(true);
 const searchQuery = ref('');
-
-const statusOptions = [
-  { label: 'Active', value: 'active' },
-  { label: 'Draft', value: 'draft' },
-  { label: 'Archived', value: 'archived' }
-];
 
 const priceBounds = reactive({ min: 0, max: 0 });
 
@@ -246,8 +63,7 @@ function formatPrice(value) {
 }
 
 function productImage(product) {
-  const image = product.images?.[0];
-  return image?.r2_url || image?.original_src || null;
+  return imageUrl(product.images?.[0]);
 }
 
 function productDescription(product) {
@@ -312,73 +128,12 @@ watch(searchQuery, (value) => {
   }, 300);
 });
 
-const emptyForm = {
-  id: null,
-  title: '',
-  vendor: '',
-  product_type: '',
-  status: 'active'
-};
-
-const productForm = reactive({ ...emptyForm });
-
 function openNew() {
-  Object.assign(productForm, emptyForm);
-  isEditing.value = false;
-  formSubmitted.value = false;
-  dialogVisible.value = true;
+  router.push({ name: 'ProductNew' });
 }
 
 function editProduct(product) {
-  Object.assign(productForm, {
-    id: product.id,
-    title: product.title || '',
-    vendor: product.vendor || '',
-    product_type: product.product_type || '',
-    status: product.status || 'active'
-  });
-  isEditing.value = true;
-  formSubmitted.value = false;
-  dialogVisible.value = true;
-}
-
-function closeDialog() {
-  dialogVisible.value = false;
-}
-
-async function saveProduct() {
-  formSubmitted.value = true;
-  if (!productForm.title) return;
-
-  saving.value = true;
-  try {
-    const payload = {
-      title: productForm.title,
-      vendor: productForm.vendor,
-      product_type: productForm.product_type,
-      status: productForm.status
-    };
-
-    if (isEditing.value) {
-      await productStore.updateProduct(productForm.id, payload);
-      toast.add({ severity: 'success', summary: 'Updated', detail: 'Product updated', life: 3000 });
-    } else {
-      await productStore.createProduct({
-        source_domain: 'manual',
-        shopify_product_id: Date.now(),
-        handle: productForm.title.toLowerCase().replace(/\s+/g, '-'),
-        ...payload
-      });
-      toast.add({ severity: 'success', summary: 'Created', detail: 'Product created', life: 3000 });
-    }
-    closeDialog();
-    productStore.fetchProducts(buildParams(productStore.page));
-  } catch (error) {
-    const message = error.response?.data?.error || 'Failed to save product';
-    toast.add({ severity: 'error', summary: 'Error', detail: message, life: 5000 });
-  } finally {
-    saving.value = false;
-  }
+  router.push({ name: 'ProductEdit', params: { id: product.id } });
 }
 
 function confirmDelete(product) {
@@ -412,3 +167,144 @@ onMounted(async () => {
   }
 });
 </script>
+
+<template>
+  <div>
+    <div class="flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      <div>
+        <div class="text-sm text-color-secondary mb-1">
+          Categories <i class="pi pi-angle-right text-xs"></i> {{ activeCategoryLabel }}
+        </div>
+        <div class="text-sm font-semibold">Showing all {{ productStore.total }} items results</div>
+      </div>
+      <div class="flex flex-wrap align-items-center gap-2">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="searchQuery" placeholder="Search..." class="w-14rem" />
+        </IconField>
+        <Button
+          icon="pi pi-filter"
+          label="Filter"
+          severity="secondary"
+          outlined
+          @click="filtersVisible = !filtersVisible"
+        />
+        <Button icon="pi pi-plus" label="New Product" @click="openNew" />
+      </div>
+    </div>
+
+    <div class="flex flex-column lg:flex-row gap-4 align-items-start">
+      <!-- Filtros -->
+      <aside v-show="filtersVisible" class="filter-panel">
+        <Card>
+          <template #content>
+            <div class="flex flex-column gap-4">
+              <div>
+                <div class="filter-section-label">Categories</div>
+                <Dropdown
+                  v-model="draft.product_type"
+                  :options="categoryOptions"
+                  placeholder="All categories"
+                  class="w-full"
+                  show-clear
+                />
+              </div>
+
+              <div>
+                <div class="filter-section-label">Product Price</div>
+                <div class="flex flex-column gap-2">
+                  <div v-for="option in priceOptions" :key="option.key" class="flex align-items-center gap-2">
+                    <RadioButton v-model="draft.priceKey" :input-id="`price-${option.key}`" :value="option.key" @change="onPricePreset(option)" />
+                    <label :for="`price-${option.key}`" class="text-sm cursor-pointer">
+                      {{ option.label }}<span v-if="option.count != null" class="text-color-secondary"> ({{ option.count }})</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="filter-section-label">Custom Price Range : {{ formatPrice(draft.customRange[1]) }}</div>
+                <Slider v-model="draft.customRange" range :min="priceBounds.min" :max="priceBounds.max" class="mb-3" @slideend="draft.priceKey = 'custom'" />
+                <div class="flex gap-2">
+                  <InputNumber v-model="draft.customRange[0]" :min="priceBounds.min" :max="priceBounds.max" input-class="w-full" class="flex-1" @input="draft.priceKey = 'custom'" />
+                  <InputNumber v-model="draft.customRange[1]" :min="priceBounds.min" :max="priceBounds.max" input-class="w-full" class="flex-1" @input="draft.priceKey = 'custom'" />
+                </div>
+              </div>
+
+              <div>
+                <div class="filter-section-label">Source</div>
+                <Dropdown
+                  v-model="draft.source_domain"
+                  :options="sourceOptions"
+                  placeholder="All sources"
+                  class="w-full"
+                  show-clear
+                />
+              </div>
+
+              <div class="flex flex-column gap-2">
+                <Button label="Apply" class="w-full" @click="applyDraft" />
+                <Button label="Clear filters" icon="pi pi-filter-slash" text class="w-full" @click="clearFilters" />
+              </div>
+            </div>
+          </template>
+        </Card>
+      </aside>
+
+      <!-- products skeleton -->
+      <div class="flex-1 min-w-0 w-full">
+        <div v-if="productStore.loading" class="grid">
+          <div v-for="n in 8" :key="n" class="col-12 sm:col-6 md:col-4 xl:col-3">
+            <div class="product-card p-0">
+              <Skeleton height="12rem" class="border-noround" />
+              <div class="p-3">
+                <Skeleton width="70%" class="mb-2" />
+                <Skeleton width="40%" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="productStore.products.length" class="grid">
+          <div v-for="product in productStore.products" :key="product.id" class="col-12 sm:col-6 md:col-4 xl:col-3">
+            <div class="product-card">
+              <div class="product-image">
+                <img v-if="productImage(product)" :src="productImage(product)" :alt="product.title" loading="lazy" />
+                <i v-else class="pi pi-image p-image-fallback"></i>
+              </div>
+              <div class="p-3 flex-1 flex flex-column">
+                <div class="product-title mb-1" :title="product.title">{{ product.title }}</div>
+                <div class="product-desc mb-3">{{ product.source_domain }}</div>
+                <div class="mt-auto flex align-items-center justify-content-between">
+                  <span class="product-price">{{ productPrice(product) }}</span>
+                  <div class="flex gap-1">
+                    <Button icon="pi pi-pencil" text rounded size="small" @click="editProduct(product)" />
+                    <Button icon="pi pi-trash" text rounded size="small" severity="danger" @click="confirmDelete(product)" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Card v-else>
+          <template #content>
+            <div class="text-center py-6 text-color-secondary">
+              <i class="pi pi-inbox text-4xl mb-3"></i>
+              <div>No products match the current filters.</div>
+            </div>
+          </template>
+        </Card>
+
+        <Paginator
+          :rows="productStore.limit"
+          :first="(productStore.page - 1) * productStore.limit"
+          :total-records="productStore.total"
+          :rows-per-page-options="[12, 24, 48, 96]"
+          class="mt-3"
+          @page="onPage"
+        />
+      </div>
+    </div>
+  </div>
+</template>

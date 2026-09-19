@@ -4,6 +4,7 @@ import LoginView from '@/views/LoginView.vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import DashboardView from '@/views/DashboardView.vue';
 import ProductsView from '@/views/ProductsView.vue';
+import ProductEditView from '@/views/ProductEditView.vue';
 import OrdersView from '@/views/OrdersView.vue';
 import SettingsView from '@/views/SettingsView.vue';
 
@@ -21,6 +22,8 @@ const routes = [
     children: [
       { path: '', name: 'Dashboard', component: DashboardView },
       { path: 'products', name: 'Products', component: ProductsView },
+      { path: 'products/new', name: 'ProductNew', component: ProductEditView },
+      { path: 'products/:id/edit', name: 'ProductEdit', component: ProductEditView },
       { path: 'orders', name: 'Orders', component: OrdersView },
       { path: 'settings', name: 'Settings', component: SettingsView }
     ]

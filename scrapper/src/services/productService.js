@@ -75,6 +75,7 @@ class ProductService {
       option1: variant.option1 || null,
       option2: variant.option2 || null,
       option3: variant.option3 || null,
+      shopify_image_id: variant.image_id || null,
       raw_options: JSON.stringify(variant.options || []),
       shopify_created_at: variant.created_at ? new Date(variant.created_at) : null,
       shopify_updated_at: variant.updated_at ? new Date(variant.updated_at) : null,
@@ -93,6 +94,19 @@ class ProductService {
   async hasImages(productId) {
     const image = await db('product_images').where({ product_id: productId }).first('id');
     return Boolean(image);
+  }
+
+  async linkVariantImages(productId) {
+    return db('product_variants')
+      .where({ product_id: productId })
+      .whereNotNull('shopify_image_id')
+      .whereNull('image_id')
+      .update({
+        image_id: db('product_images')
+          .select('id')
+          .where({ product_id: productId })
+          .whereRaw('product_images.shopify_image_id = product_variants.shopify_image_id')
+      });
   }
 
   async saveImages(productId, images, productTitle) {

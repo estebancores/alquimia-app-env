@@ -38,6 +38,7 @@ async function main() {
             product.images || [],
             product.title
           );
+          await service.linkVariantImages(productId);
         }
         continue;
       }
@@ -49,6 +50,7 @@ async function main() {
         product.images || [],
         product.title
       );
+      await service.linkVariantImages(productId);
       insertedCount += 1;
     }
 

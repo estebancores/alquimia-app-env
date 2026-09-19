@@ -11,8 +11,8 @@ router.get('/meta', generalLimiter, productController.meta);
 router.get('/:id', generalLimiter, productController.get);
 
 // Admin write endpoints
-router.post('/', authenticateToken, strictLimiter, productController.createValidators, productController.create);
-router.put('/:id', authenticateToken, strictLimiter, productController.updateValidators, productController.update);
-router.delete('/:id', authenticateToken, strictLimiter, productController.remove);
+router.post('/', authenticateToken, productController.createValidators, productController.create);
+router.put('/:id', authenticateToken, productController.updateValidators, productController.update);
+router.delete('/:id', authenticateToken, productController.remove);
 
 module.exports = router;

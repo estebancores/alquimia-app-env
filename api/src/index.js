@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3001;
 const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(helmet());
 app.use(cors({ origin: corsOrigin }));
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(generalLimiter);
 
 // Health check
