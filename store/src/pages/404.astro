@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Página no encontrada"
+  description="La página que buscas no existe."
+  noindex
+  cacheControl="no-store"
+>
+  <div class="mx-auto max-w-md px-gutter py-32 text-center">
+    <p class="text-xs tracking-widest text-stone uppercase">Error 404</p>
+    <h1 class="mt-4 font-serif text-4xl">Página no encontrada</h1>
+    <p class="mt-4 text-sm text-taupe">
+      Puede que el producto ya no esté disponible o que el enlace haya cambiado.
+    </p>
+    <a
+      href="/shop"
+      class="mt-10 inline-block border border-ink px-8 py-3 text-sm tracking-widest uppercase transition-colors hover:bg-ink hover:text-cream"
+    >
+      Ir a la tienda
+    </a>
+  </div>
+</BaseLayout>

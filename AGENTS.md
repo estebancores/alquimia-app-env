@@ -70,10 +70,14 @@ This creates the first admin account so you can sign in from the `admin/` app.
 ### Running the API
 
 ```bash
-npm start
+npm start      # plain node
+npm run dev    # nodemon, auto-restarts on src/ and .env changes
 ```
 
-The API runs on the port defined by `PORT` (default `3001`).
+The API runs on the port defined by `PORT` (default `3001`). Every request is
+logged to the console by `src/middleware/requestLogger.js` (`--> METHOD url`
+incoming, `<-- METHOD url STATUS ms | body` on response; list payloads are
+summarized as `data=Array(n) pagination={...}`).
 
 ### Product merge
 
@@ -142,3 +146,33 @@ npm run build
 - `src/views/ProductEditView.vue` — product editor (gallery, variants, merge-duplicates section)
 - `src/views/OrdersView.vue` — pending deliveries and scheduling dialog
 - `src/views/SettingsView.vue` — settings form
+
+## Store
+
+The `store/` package is the customer-facing storefront: Astro 7 (SSR, Node adapter), Tailwind CSS 4, Preact islands, strict TypeScript. Aritzia-style minimal design.
+
+### Setup
+
+```bash
+cd store
+npm install
+cp .env.example .env   # API_BASE_URL, PUBLIC_SITE_URL, PUBLIC_WHATSAPP_NUMBER
+npm run dev            # http://localhost:4321, requires api/ on :3001
+```
+
+### Verification
+
+```bash
+npm run check   # astro check (requires typescript 6.x, not 7)
+npm run build   # production build; npm start serves dist/server/entry.mjs
+```
+
+### Key facts
+
+- Fully SSR (`output: 'server'`); caching via in-memory TTL in `src/lib/api.ts` + `Cache-Control` headers set in `BaseLayout.astro`.
+- Routes: `/` (home), `/shop` (all products + `?search=`), `/[category]` (slugified `product_type`), `/product/[slug]` (product `handle`), `/cart`, dynamic `sitemap.xml` and `robots.txt`.
+- Storefront only shows `public=true` products (scraped products keep `status='draft'`, so status is not filtered).
+- Product-by-slug uses `GET /products?search=<handle>` + exact handle match (API has no by-handle endpoint).
+- Stored `r2_url` values point to the private `*.r2.cloudflarestorage.com` endpoint; `imageUrl()` in `src/lib/format.ts` falls back to `original_src` (Shopify CDN).
+- Cart is client-only (nanostores + localStorage) and checkout generates a WhatsApp order link.
+- Client JS budget: only Preact islands (`src/islands/`) — keep static components in `src/components/`.

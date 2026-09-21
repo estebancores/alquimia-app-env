@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import CategoryGrid from '../components/CategoryGrid.astro';
+import ProductCard from '../components/ProductCard.astro';
+import ApiErrorNotice from '../components/ApiErrorNotice.astro';
+import { getCategories, getNewArrivals } from '../lib/api';
+import { organizationJsonLd, itemListJsonLd } from '../lib/jsonld';
+import { imageUrl } from '../lib/format';
+import type { Category, Product } from '../lib/types';
+
+const siteUrl = (Astro.site ?? new URL(Astro.url.origin)).href.replace(/\/$/, '');
+
+let categories: Category[] = [];
+let arrivals: Product[] = [];
+let apiError = false;
+try {
+  [categories, arrivals] = await Promise.all([getCategories(4), getNewArrivals(8)]);
+} catch {
+  apiError = true;
+}
+
+const heroImage = arrivals[0]?.images[0] ?? null;
+const heroVideo = import.meta.env.PUBLIC_HERO_VIDEO_URL || null;
+
+const jsonLd = [
+  organizationJsonLd(siteUrl),
+  ...(arrivals.length ? [itemListJsonLd(siteUrl, arrivals, '/')] : []),
+];
+---
+
+<BaseLayout
+  title="Alquimia — Cuidado personal y belleza"
+  description="Descubre la selección Alquimia: cuidado personal y belleza con lo esencial, elevado. Nuevas llegadas cada semana."
+  canonical="/"
+  ogImage={imageUrl(heroImage)}
+  jsonLd={jsonLd}
+>
+  {apiError ? (
+    <ApiErrorNotice />
+  ) : (
+    <>
+      <Hero image={heroImage} videoUrl={heroVideo} />
+
+      <section class="mx-auto w-[95%] px-gutter py-20" aria-labelledby="categorias">
+        <h2 id="categorias" class="text-center font-serif text-3xl">Compra por categoría</h2>
+        <div class="mt-10">
+          <CategoryGrid categories={categories} variant="editorial" />
+        </div>
+      </section>
+
+      <section class="mx-auto w-[95%] px-gutter pb-8" aria-labelledby="novedades">
+        <div class="flex items-baseline justify-between">
+          <h2 id="novedades" class="font-serif text-3xl">Novedades</h2>
+          <a href="/shop" class="text-sm tracking-wide text-taupe underline hover:text-ink">Ver todo</a>
+        </div>
+        <div class="mt-10 grid grid-cols-2 gap-x-gutter gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+          {arrivals.map((product) => (
+            <ProductCard product={product} />
+          ))}
+        </div>
+      </section>
+    </>
+  )}
+</BaseLayout>

@@ -6,9 +6,9 @@ const { generalLimiter, strictLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
 // Public read endpoints
-router.get('/', generalLimiter, productController.listValidators, productController.list);
+router.get('/', productController.listValidators, productController.list);
 router.get('/meta', generalLimiter, productController.meta);
-router.get('/:id', generalLimiter, productController.get);
+router.get('/:id', productController.get);
 
 // Admin write endpoints
 router.post('/', authenticateToken, productController.createValidators, productController.create);

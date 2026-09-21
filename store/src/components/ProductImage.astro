@@ -1,0 +1,47 @@
+---
+import { Image } from 'astro:assets';
+import type { ProductImage as ProductImageType } from '../lib/types';
+import { imageUrl } from '../lib/format';
+
+interface Props {
+  image: ProductImageType | null | undefined;
+  alt: string;
+  widths?: number[];
+  sizes?: string;
+  loading?: 'lazy' | 'eager';
+  class?: string;
+}
+
+const {
+  image,
+  alt,
+  widths = [320, 480, 640, 960],
+  sizes = '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw',
+  loading = 'lazy',
+  class: className = 'h-full w-full object-cover',
+} = Astro.props;
+
+const src = imageUrl(image);
+// astro:assets needs intrinsic dimensions for remote images; the scraper
+// stores them when available, otherwise fall back to a 4:5 editorial ratio.
+const width = image?.width ?? 800;
+const height = image?.height ?? 1000;
+---
+
+{src ? (
+  <Image
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    widths={widths}
+    sizes={sizes}
+    loading={loading}
+    decoding="async"
+    class={className}
+  />
+) : (
+  <div class={`flex items-center justify-center bg-bone text-stone ${className}`} role="img" aria-label={alt}>
+    <span class="font-serif text-sm tracking-widest uppercase">Alquimia</span>
+  </div>
+)}

@@ -9,6 +9,7 @@ const productRoutes = require('./routes/products');
 const imageRoutes = require('./routes/images');
 const logRoutes = require('./routes/logs');
 const errorHandler = require('./middleware/errorHandler');
+const requestLogger = require('./middleware/requestLogger');
 const { generalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
@@ -18,6 +19,7 @@ const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(helmet());
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '1mb' }));
+app.use(requestLogger);
 app.use(generalLimiter);
 
 // Health check

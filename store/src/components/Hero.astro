@@ -1,0 +1,56 @@
+---
+import type { ProductImage as ProductImageType } from '../lib/types';
+import ProductImage from './ProductImage.astro';
+import { imageUrl } from '../lib/format';
+
+interface Props {
+  image: ProductImageType | null;
+  videoUrl?: string | null;
+}
+
+const { image, videoUrl = null } = Astro.props;
+const posterUrl = imageUrl(image) ?? undefined;
+---
+
+<section class="relative flex h-[85svh] min-h-[480px] items-end overflow-hidden bg-bone">
+  {videoUrl ? (
+    <video
+      class="absolute inset-0 h-full w-full object-cover"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      poster={posterUrl}
+    >
+      <source src={videoUrl} type="video/mp4" />
+    </video>
+  ) : (
+    <div class="absolute inset-0">
+      <ProductImage
+        image={image}
+        alt="Nueva colección Alquimia"
+        loading="eager"
+        widths={[640, 1024, 1440, 1920]}
+        sizes="100vw"
+        class="h-full w-full object-cover"
+      />
+    </div>
+  )}
+
+  <div class="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" aria-hidden="true"></div>
+
+  <div class="relative z-10 mx-auto w-[95%] px-gutter pb-16">
+    <p class="text-xs tracking-widest text-cream/90 uppercase">Nueva temporada</p>
+    <h1 class="mt-3 max-w-xl font-serif text-5xl leading-tight text-cream sm:text-6xl">
+      Lo esencial, elevado.
+    </h1>
+    <a
+      href="/shop"
+      class="mt-8 inline-block border border-cream px-8 py-3 text-sm tracking-widest text-cream uppercase transition-colors hover:bg-cream hover:text-ink"
+      data-astro-prefetch="load"
+    >
+      Comprar ahora
+    </a>
+  </div>
+</section>

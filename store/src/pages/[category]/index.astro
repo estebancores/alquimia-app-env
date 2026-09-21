@@ -1,0 +1,114 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import CategoryGrid from '../../components/CategoryGrid.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import ApiErrorNotice from '../../components/ApiErrorNotice.astro';
+import FilterBar from '../../islands/FilterBar';
+import { getCategories, resolveCategorySlug, ApiError } from '../../lib/api';
+import { listingCanonical, loadListing, type ListingData } from '../../lib/listing';
+import { breadcrumbJsonLd, itemListJsonLd } from '../../lib/jsonld';
+import { slugify } from '../../lib/format';
+import type { Category } from '../../lib/types';
+
+const siteUrl = (Astro.site ?? new URL(Astro.url.origin)).href.replace(/\/$/, '');
+const { category: slug } = Astro.params;
+
+let productType: string | null = null;
+let listing: ListingData | null = null;
+let categories: Category[] = [];
+let apiDown = false;
+
+try {
+  productType = slug ? await resolveCategorySlug(slug) : null;
+  if (productType) {
+    [listing, categories] = await Promise.all([
+      loadListing(Astro.url, productType),
+      getCategories(8),
+    ]);
+  }
+} catch (err) {
+  apiDown = err instanceof ApiError;
+}
+
+if (!productType && !apiDown) {
+  return Astro.rewrite('/404');
+}
+
+const basePath = `/${slug}`;
+const crumbs = [
+  { name: 'Inicio', href: '/' },
+  { name: 'Toda la tienda', href: '/shop' },
+  { name: productType ?? '', href: basePath },
+];
+
+const page = listing?.state.page ?? 1;
+const hasFilters = Boolean(
+  listing && (listing.state.vendor || listing.state.priceKey || listing.state.search || listing.state.sort !== 'newest'),
+);
+---
+
+<BaseLayout
+  title={page > 1 ? `${productType} — Página ${page}` : (productType ?? 'Categoría')}
+  description={`Compra ${productType ?? 'productos'} en Alquimia. Selección curada de cuidado personal y belleza con envío coordinado por WhatsApp.`}
+  canonical={listingCanonical(basePath, page)}
+  noindex={hasFilters}
+  prevUrl={page > 1 ? listingCanonical(basePath, page - 1) : null}
+  nextUrl={listing && page < listing.result.totalPages ? listingCanonical(basePath, page + 1) : null}
+  jsonLd={
+    listing
+      ? [breadcrumbJsonLd(siteUrl, crumbs), itemListJsonLd(siteUrl, listing.result.products, basePath)]
+      : []
+  }
+>
+  <div class="mx-auto w-[95%] px-gutter py-10">
+    {listing && productType ? (
+      <>
+        <Breadcrumbs crumbs={crumbs} />
+        <h1 class="mt-6 font-serif text-4xl sm:text-5xl">{productType}</h1>
+
+        <div class="mt-8">
+          <CategoryGrid categories={categories} variant="strip" activeSlug={slug} />
+        </div>
+
+        <div class="sticky top-10.5 z-10 -mx-gutter mt-6 border-y border-sand bg-cream px-gutter py-3">
+          <FilterBar
+            client:visible
+            meta={listing.meta}
+            current={{
+              vendor: listing.state.vendor,
+              priceKey: listing.state.priceKey,
+              sort: listing.state.sort,
+            }}
+            productTypes={listing.meta.product_types.filter(Boolean).map((name) => ({ name, slug: slugify(name) }))}
+            currentTypeSlug={slug}
+          />
+        </div>
+
+        <p class="mt-6 text-xs tracking-wide text-stone">
+          {listing.result.pagination.total} productos
+        </p>
+
+        {listing.result.products.length ? (
+          <div class="mt-6 grid grid-cols-2 gap-x-gutter gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+            {listing.result.products.map((product, i) => (
+              <ProductCard product={product} loading={i < 4 ? 'eager' : 'lazy'} />
+            ))}
+          </div>
+        ) : (
+          <p class="py-20 text-center text-taupe">No encontramos productos con esos filtros.</p>
+        )}
+
+        <Pagination
+          page={page}
+          totalPages={listing.result.totalPages}
+          basePath={basePath}
+          params={listing.paginationParams}
+        />
+      </>
+    ) : (
+      <ApiErrorNotice />
+    )}
+  </div>
+</BaseLayout>

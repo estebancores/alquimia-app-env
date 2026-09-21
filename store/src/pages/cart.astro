@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import CartContents from '../islands/CartContents';
+
+const whatsappNumber = import.meta.env.PUBLIC_WHATSAPP_NUMBER ?? '';
+const crumbs = [
+  { name: 'Inicio', href: '/' },
+  { name: 'Carrito', href: '/cart' },
+];
+---
+
+<BaseLayout
+  title="Carrito"
+  description="Revisa tu carrito y envía tu pedido por WhatsApp."
+  canonical="/cart"
+  noindex
+  cacheControl="private, no-store"
+>
+  <div class="mx-auto max-w-5xl px-gutter py-10">
+    <Breadcrumbs crumbs={crumbs} />
+    <h1 class="mt-6 font-serif text-4xl">Carrito</h1>
+    <div class="mt-10">
+      <CartContents client:load whatsappNumber={whatsappNumber} />
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,50 @@
+---
+import CartIndicator from '../islands/CartIndicator';
+import { getCategories } from '../lib/api';
+import Logo from '../assets/logo.svg';
+import type { Category } from '../lib/types';
+
+let categories: Category[] = [];
+try {
+  categories = await getCategories(5);
+} catch {
+  // Navigation must render even if the API is down.
+}
+
+---
+
+<header class="bg-white">
+  <div class="mx-auto flex w-[95%] items-center justify-between gap-6 px-gutter py-4">
+    <a href="/" class="shrink-0" aria-label="Alquimia — inicio">
+      <Logo class="h-16 w-auto md:h-20" />
+    </a>
+
+    <div class="flex items-center gap-4">
+      <form action="/shop" method="get" role="search" class="hidden items-center gap-2 border-b border-sand sm:flex">
+        <input
+          type="search"
+          name="search"
+          placeholder="Buscar"
+          aria-label="Buscar productos"
+          class="w-32 bg-transparent py-1 text-sm outline-none placeholder:text-stone focus:w-44 transition-all"
+        />
+      </form>
+      <CartIndicator client:idle transition:persist />
+    </div>
+  </div>
+</header>
+
+<!-- Outside <header> on purpose: a sticky element can't out-stick its parent,
+     so the nav must be a sibling to remain pinned after the logo scrolls away. -->
+<nav aria-label="Categorías" class="sticky top-0 z-40 border-y border-sand bg-white">
+  <div class="mx-auto w-[95%] overflow-x-auto px-gutter">
+    <ul class="flex items-center gap-6 py-2.5 text-sm tracking-wide whitespace-nowrap text-taupe">
+      <li><a href="/shop" class="transition-colors hover:text-ink">Todo</a></li>
+      {categories.map((cat) => (
+        <li>
+          <a href={`/${cat.slug}`} class="transition-colors hover:text-ink">{cat.name}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>

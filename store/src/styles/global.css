@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Design tokens — Aritzia-inspired neutral palette, serif display type */
+@theme {
+  --font-serif: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-cream: #faf9f7;
+  --color-bone: #f2f0ec;
+  --color-sand: #e6e2db;
+  --color-stone: #a8a29a;
+  --color-taupe: #6f6a63;
+  --color-ink: #1c1b1a;
+  --color-accent: #3d3a36;
+
+  --tracking-widest: 0.18em;
+
+  --spacing-gutter: 1.25rem;
+}
+
+html {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+::selection {
+  background: var(--color-sand);
+}
+
+/* Minimal focus style that stays visible on the neutral palette */
+:focus-visible {
+  outline: 1.5px solid var(--color-ink);
+  outline-offset: 2px;
+}

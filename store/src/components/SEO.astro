@@ -1,0 +1,54 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  /** Canonical path (e.g. "/product/foo") or full URL. Defaults to current URL. */
+  canonical?: string;
+  ogImage?: string | null;
+  ogType?: 'website' | 'product' | 'article';
+  /** JSON-LD objects to inject as <script type="application/ld+json"> */
+  jsonLd?: object[];
+  noindex?: boolean;
+  prevUrl?: string | null;
+  nextUrl?: string | null;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage,
+  ogType = 'website',
+  jsonLd = [],
+  noindex = false,
+  prevUrl = null,
+  nextUrl = null,
+} = Astro.props;
+
+const site = Astro.site ?? new URL(Astro.url.origin);
+const canonicalUrl = canonical ? new URL(canonical, site).href : new URL(Astro.url.pathname + Astro.url.search, site).href;
+const fullTitle = title.includes('Alquimia') ? title : `${title} | Alquimia`;
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+{noindex && <meta name="robots" content="noindex, follow" />}
+{prevUrl && <link rel="prev" href={new URL(prevUrl, site).href} />}
+{nextUrl && <link rel="next" href={new URL(nextUrl, site).href} />}
+
+<meta property="og:site_name" content="Alquimia" />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonicalUrl} />
+{ogImage && <meta property="og:image" content={ogImage} />}
+
+<meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+{ogImage && <meta name="twitter:image" content={ogImage} />}
+
+{jsonLd.map((schema) => (
+  <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+))}

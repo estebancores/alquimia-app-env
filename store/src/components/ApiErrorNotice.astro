@@ -1,0 +1,20 @@
+---
+interface Props {
+  message?: string;
+}
+
+const { message = 'No pudimos cargar los productos en este momento.' } = Astro.props;
+Astro.response.status = 503;
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+
+<div class="mx-auto max-w-md py-24 text-center">
+  <h2 class="font-serif text-2xl">Algo salió mal</h2>
+  <p class="mt-3 text-sm text-taupe">{message}</p>
+  <a
+    href={Astro.url.pathname}
+    class="mt-8 inline-block border border-ink px-8 py-3 text-sm tracking-widest uppercase transition-colors hover:bg-ink hover:text-cream"
+  >
+    Reintentar
+  </a>
+</div>

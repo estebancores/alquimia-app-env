@@ -1,0 +1,50 @@
+---
+interface Props {
+  page: number;
+  totalPages: number;
+  /** Base path, e.g. "/shop" or "/body-lotion" */
+  basePath: string;
+  /** Extra query params (filters/search) preserved across pages */
+  params?: URLSearchParams;
+}
+
+const { page, totalPages, basePath, params } = Astro.props;
+
+function pageUrl(p: number): string {
+  const qs = new URLSearchParams(params);
+  if (p > 1) qs.set('page', String(p));
+  else qs.delete('page');
+  const query = qs.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}
+
+const windowSize = 2;
+const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+  (p) => p === 1 || p === totalPages || Math.abs(p - page) <= windowSize,
+);
+---
+
+{totalPages > 1 && (
+  <nav aria-label="Paginación" class="mt-14 flex items-center justify-center gap-2 text-sm">
+    {page > 1 && (
+      <a href={pageUrl(page - 1)} rel="prev" class="border border-sand px-3 py-2 hover:border-ink">
+        ← Anterior
+      </a>
+    )}
+    {pages.map((p, i) => (
+      <>
+        {i > 0 && (pages[i - 1] ?? 0) < p - 1 && <span class="px-1 text-stone">…</span>}
+        {p === page ? (
+          <span aria-current="page" class="bg-ink px-3 py-2 text-cream">{p}</span>
+        ) : (
+          <a href={pageUrl(p)} class="border border-sand px-3 py-2 hover:border-ink">{p}</a>
+        )}
+      </>
+    ))}
+    {page < totalPages && (
+      <a href={pageUrl(page + 1)} rel="next" class="border border-sand px-3 py-2 hover:border-ink">
+        Siguiente →
+      </a>
+    )}
+  </nav>
+)}
