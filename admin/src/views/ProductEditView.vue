@@ -430,6 +430,21 @@ function mergeProductImage(product) {
   return imageUrl(product.images?.[0]);
 }
 
+const mergeImagePreview = reactive({ url: null, x: 0, y: 0 });
+
+function onMergeThumbEnter(product) {
+  mergeImagePreview.url = mergeProductImage(product);
+}
+
+function onMergeThumbMove(event) {
+  mergeImagePreview.x = Math.min(event.clientX + 16, window.innerWidth - 270);
+  mergeImagePreview.y = Math.min(event.clientY + 16, window.innerHeight - 270);
+}
+
+function onMergeThumbLeave() {
+  mergeImagePreview.url = null;
+}
+
 function confirmMerge() {
   const count = mergeSelectedIds.value.length;
   if (!count) return;
@@ -866,7 +881,12 @@ onMounted(() => {
                         :class="{ 'merge-row-active': mergeSelectedIds.includes(product.id) }"
                         @click="toggleMergeSelection(product.id)"
                       >
-                        <span class="merge-thumb">
+                        <span
+                          class="merge-thumb"
+                          @mouseenter="onMergeThumbEnter(product)"
+                          @mousemove="onMergeThumbMove"
+                          @mouseleave="onMergeThumbLeave"
+                        >
                           <img v-if="mergeProductImage(product)" :src="mergeProductImage(product)" :alt="product.title" loading="lazy" />
                           <i v-else class="pi pi-image"></i>
                         </span>
@@ -887,6 +907,14 @@ onMounted(() => {
                     <div v-else-if="mergeSearched" class="text-sm text-color-secondary">
                       No matching products found.
                     </div>
+
+                    <img
+                      v-if="mergeImagePreview.url"
+                      :src="mergeImagePreview.url"
+                      class="merge-image-preview"
+                      :style="{ left: mergeImagePreview.x + 'px', top: mergeImagePreview.y + 'px' }"
+                      alt=""
+                    />
 
                     <div v-if="mergeResults.length" class="flex justify-content-end">
                       <Button
@@ -1232,5 +1260,19 @@ onMounted(() => {
   font-size: 1.1rem;
   color: var(--p-primary-color);
   flex-shrink: 0;
+}
+
+.merge-image-preview {
+  position: fixed;
+  width: 15rem;
+  height: 15rem;
+  object-fit: contain;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.25);
+  padding: 0.5rem;
+  pointer-events: none;
+  z-index: 1100;
 }
 </style>

@@ -14,6 +14,8 @@ class AuthService {
     );
   }
 
+
+
   async findByEmail(email) {
     return db('users').whereRaw('LOWER(email) = LOWER(?)', [email]).first();
   }

@@ -24,6 +24,8 @@ const productStore = useProductStore();
 
 const filtersVisible = ref(true);
 const searchQuery = ref('');
+const selectMode = ref(false);
+const selectedIds = ref([]);
 
 const priceBounds = reactive({ min: 0, max: 0 });
 
@@ -136,6 +138,62 @@ function editProduct(product) {
   router.push({ name: 'ProductEdit', params: { id: product.id } });
 }
 
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand('copy');
+    el.remove();
+    return ok;
+  }
+}
+
+async function copyProductId(product) {
+  const ok = await copyToClipboard(product.id);
+  toast.add({
+    severity: ok ? 'success' : 'error',
+    summary: ok ? 'Copied' : 'Error',
+    detail: ok ? 'Product ID copied to clipboard' : 'Failed to copy to clipboard',
+    life: 2500
+  });
+}
+
+function onCardClick(product) {
+  if (!selectMode.value) return;
+  toggleProductSelection(product.id);
+}
+
+function toggleProductSelection(id) {
+  if (selectedIds.value.includes(id)) {
+    selectedIds.value = selectedIds.value.filter((selected) => selected !== id);
+  } else {
+    selectedIds.value = [...selectedIds.value, id];
+  }
+}
+
+function cancelSelect() {
+  selectMode.value = false;
+  selectedIds.value = [];
+}
+
+async function copySelectedIds() {
+  const count = selectedIds.value.length;
+  if (!count) return;
+  const text = selectedIds.value.map((id) => `'${id}'`).join(',');
+  const ok = await copyToClipboard(text);
+  toast.add({
+    severity: ok ? 'success' : 'error',
+    summary: ok ? 'Copied' : 'Error',
+    detail: ok ? `${count} product ID${count > 1 ? 's' : ''} copied` : 'Failed to copy to clipboard',
+    life: 2500
+  });
+}
+
 function confirmDelete(product) {
   confirm.require({
     message: `Are you sure you want to delete "${product.title}"?`,
@@ -188,6 +246,24 @@ onMounted(async () => {
           severity="secondary"
           outlined
           @click="filtersVisible = !filtersVisible"
+        />
+        <template v-if="selectMode">
+          <span class="text-sm text-color-secondary">{{ selectedIds.length }} selected</span>
+          <Button
+            icon="pi pi-copy"
+            label="Copy IDs"
+            :disabled="!selectedIds.length"
+            @click="copySelectedIds"
+          />
+          <Button icon="pi pi-times" label="Cancel" severity="secondary" outlined @click="cancelSelect" />
+        </template>
+        <Button
+          v-else
+          icon="pi pi-check-square"
+          label="Select"
+          severity="secondary"
+          outlined
+          @click="selectMode = true"
         />
         <Button icon="pi pi-plus" label="New Product" @click="openNew" />
       </div>
@@ -267,7 +343,17 @@ onMounted(async () => {
 
         <div v-else-if="productStore.products.length" class="grid">
           <div v-for="product in productStore.products" :key="product.id" class="col-12 sm:col-6 md:col-4 xl:col-3">
-            <div class="product-card">
+            <div
+              class="product-card"
+              :class="{
+                'product-card-selectable': selectMode,
+                'product-card-selected': selectedIds.includes(product.id)
+              }"
+              @click="onCardClick(product)"
+            >
+              <span v-if="selectMode" class="product-card-check">
+                <i class="pi" :class="selectedIds.includes(product.id) ? 'pi-check-circle' : 'pi-circle'"></i>
+              </span>
               <div class="product-image">
                 <img v-if="productImage(product)" :src="productImage(product)" :alt="product.title" loading="lazy" />
                 <i v-else class="pi pi-image p-image-fallback"></i>
@@ -277,7 +363,8 @@ onMounted(async () => {
                 <div class="product-desc mb-3">{{ product.source_domain }}</div>
                 <div class="mt-auto flex align-items-center justify-content-between">
                   <span class="product-price">{{ productPrice(product) }}</span>
-                  <div class="flex gap-1">
+                  <div v-if="!selectMode" class="flex gap-1">
+                    <Button icon="pi pi-copy" text rounded size="small" @click="copyProductId(product)" />
                     <Button icon="pi pi-pencil" text rounded size="small" @click="editProduct(product)" />
                     <Button icon="pi pi-trash" text rounded size="small" severity="danger" @click="confirmDelete(product)" />
                   </div>
@@ -308,3 +395,32 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.product-card {
+  position: relative;
+}
+
+.product-card-selectable {
+  cursor: pointer;
+}
+
+.product-card-selected {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: -1px;
+}
+
+.product-card-check {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  font-size: 1.25rem;
+  color: var(--p-primary-color);
+  background: var(--p-content-background);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+</style>
