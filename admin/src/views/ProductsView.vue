@@ -155,7 +155,7 @@ function confirmDelete(product) {
 }
 
 onMounted(async () => {
-  productStore.fetchProducts(buildParams(1, 12));
+  productStore.fetchProducts(buildParams(1, 24));
   try {
     const meta = await productStore.fetchFilterMeta();
     priceBounds.min = Math.floor(Number(meta.price?.min || 0));
