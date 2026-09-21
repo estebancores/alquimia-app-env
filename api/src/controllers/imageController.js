@@ -16,6 +16,11 @@ const updateValidators = [
   body('alt').optional().trim()
 ];
 
+const bulkDeleteValidators = [
+  body('ids').isArray({ min: 1, max: 200 }),
+  body('ids.*').isUUID()
+];
+
 function buildAuditContext(req) {
   return { userId: req.user?.id, req };
 }
@@ -83,4 +88,18 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { createValidators, updateValidators, list, get, create, update, remove };
+async function bulkRemove(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const result = await imageService.deleteMany(req.body.ids, buildAuditContext(req));
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { createValidators, updateValidators, bulkDeleteValidators, list, get, create, update, remove, bulkRemove };

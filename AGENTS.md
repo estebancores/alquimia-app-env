@@ -38,7 +38,7 @@ node src/index.js almamia.com
 
 - `src/index.js` — entry point and orchestration
 - `src/services/shopifyScraper.js` — fetches products from Shopify JSON API
-- `src/services/productService.js` — upserts products/variants/images into PostgreSQL
+- `src/services/productService.js` — upserts products/variants/images into PostgreSQL; skips or redirects products recorded in `merged_products` (tombstones written when duplicates are merged via the API)
 - `src/services/r2Uploader.js` — downloads images and uploads them to Cloudflare R2
 - `src/config/db.js` — Knex database client
 - `migrations/` — Knex migration files
@@ -74,6 +74,16 @@ npm start
 ```
 
 The API runs on the port defined by `PORT` (default `3001`).
+
+### Product merge
+
+`POST /products/:id/merge` (auth required) accepts `{ "product_ids": [...] }` and merges those
+products into the target: their variants and images are re-parented, a `merged_products`
+tombstone row is written per source, and the source product rows are deleted. The scraper
+checks these tombstones so re-scraping a domain does not resurrect merged duplicates.
+
+`GET /products` also accepts a `title` query param (case-insensitive LIKE) for finding
+merge candidates; it is used by the admin "Merge duplicate products" section.
 
 ## Admin
 
@@ -129,5 +139,6 @@ npm run build
 - `src/views/LoginView.vue` — simple login screen
 - `src/views/DashboardView.vue` — dashboard summary
 - `src/views/ProductsView.vue` — product list and CRUD dialog
+- `src/views/ProductEditView.vue` — product editor (gallery, variants, merge-duplicates section)
 - `src/views/OrdersView.vue` — pending deliveries and scheduling dialog
 - `src/views/SettingsView.vue` — settings form

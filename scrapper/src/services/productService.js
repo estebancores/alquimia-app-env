@@ -27,6 +27,18 @@ class ProductService {
 
     if (existing) return { productId: existing.id, created: false };
 
+    const merged = await db('merged_products')
+      .where({ source_domain: domain, shopify_product_id: product.id })
+      .first();
+
+    if (merged) {
+      if (merged.merged_into) {
+        const target = await db('products').where({ id: merged.merged_into }).first('id');
+        if (target) return { productId: target.id, created: false };
+      }
+      return { productId: null, created: false };
+    }
+
     const payload = {
       source_domain: domain,
       shopify_product_id: product.id,

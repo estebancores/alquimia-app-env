@@ -110,6 +110,32 @@ class ImageService {
 
     return { deleted: true };
   }
+
+  async deleteMany(ids, { userId, req }) {
+    const images = await db('product_images').whereIn('id', ids);
+    if (!images.length) {
+      const error = new Error('No images found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    for (const image of images) {
+      await auditService.log({
+        userId,
+        productId: image.product_id,
+        imageId: image.id,
+        action: 'IMAGE_DELETE',
+        tableName: 'product_images',
+        recordId: image.id,
+        payload: image,
+        req
+      });
+    }
+
+    await db('product_images').whereIn('id', images.map((image) => image.id)).delete();
+
+    return { deleted: images.length };
+  }
 }
 
 module.exports = new ImageService();

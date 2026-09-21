@@ -33,6 +33,11 @@ export const useProductStore = defineStore('product', {
       return this.filterMeta;
     },
 
+    async searchProducts(params = {}) {
+      const { data } = await api.get('/products', { params });
+      return data.data || [];
+    },
+
     async fetchProduct(id) {
       this.loading = true;
       try {
@@ -58,6 +63,11 @@ export const useProductStore = defineStore('product', {
       await api.delete(`/products/${id}`);
     },
 
+    async mergeProducts(id, productIds) {
+      const { data } = await api.post(`/products/${id}/merge`, { product_ids: productIds });
+      return data.data;
+    },
+
     async addImage(productId, payload) {
       const { data } = await api.post(`/products/${productId}/images`, payload);
       return data.data;
@@ -70,6 +80,10 @@ export const useProductStore = defineStore('product', {
 
     async deleteImage(id) {
       await api.delete(`/images/${id}`);
+    },
+
+    async deleteImages(ids) {
+      await api.post('/images/bulk-delete', { ids });
     }
   }
 });

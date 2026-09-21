@@ -71,6 +71,9 @@ const selectedVariant = computed(() => variants.value[selectedVariantIndex.value
 
 const images = ref([]);
 const selectedImageId = ref(null);
+const imageSelectMode = ref(false);
+const selectedImageIds = ref([]);
+const deletingImages = ref(false);
 
 const sortedImages = computed(() =>
   [...images.value].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
@@ -83,6 +86,14 @@ const selectedIsCover = computed(() => selectedImage.value?.id === coverImage.va
 
 const vendorOptions = computed(() => productStore.filterMeta?.vendors || []);
 const categoryOptions = computed(() => productStore.filterMeta?.product_types || []);
+const sourceDomainOptions = computed(() => productStore.filterMeta?.source_domains || []);
+
+const mergeSearch = reactive({ source_domain: '', title: '' });
+const mergeResults = ref([]);
+const mergeSelectedIds = ref([]);
+const mergeSearching = ref(false);
+const mergeSearched = ref(false);
+const merging = ref(false);
 
 const statusLabel = computed(() =>
   statusOptions.find((o) => o.value === form.status)?.label || form.status || 'Draft'
@@ -173,6 +184,8 @@ function populate(product) {
   form.shopify_created_at = product.shopify_created_at;
   form.shopify_updated_at = product.shopify_updated_at;
 
+  mergeSearch.source_domain = product.source_domain || '';
+
   variants.value = (product.variants || []).map((variant) => ({
     id: variant.id,
     title: variant.title,
@@ -226,13 +239,15 @@ async function save() {
     const changedVariants = variants.value.filter((variant) => {
       const original = originalVariants.value.find((o) => o.id === variant.id);
       if (!original) return true;
-      return Number(variant.price) !== Number(original.price)
+      return (variant.title ?? '') !== (original.title ?? '')
+        || Number(variant.price) !== Number(original.price)
         || (variant.compare_at_price ?? null) !== (original.compare_at_price ?? null)
         || (variant.image_id ?? null) !== (original.image_id ?? null);
     });
     if (changedVariants.length) {
       payload.variants = changedVariants.map((variant) => ({
         id: variant.id,
+        title: variant.title,
         price: variant.price,
         compare_at_price: variant.compare_at_price,
         image_id: variant.image_id
@@ -294,6 +309,58 @@ async function addImage() {
   }
 }
 
+function onImageClick(image) {
+  if (imageSelectMode.value) {
+    toggleImageSelection(image.id);
+  } else {
+    selectedImageId.value = image.id;
+  }
+}
+
+function toggleImageSelection(id) {
+  if (selectedImageIds.value.includes(id)) {
+    selectedImageIds.value = selectedImageIds.value.filter((selected) => selected !== id);
+  } else {
+    selectedImageIds.value = [...selectedImageIds.value, id];
+  }
+}
+
+function cancelImageSelect() {
+  imageSelectMode.value = false;
+  selectedImageIds.value = [];
+}
+
+function confirmDeleteSelectedImages() {
+  const count = selectedImageIds.value.length;
+  if (!count) return;
+  confirm.require({
+    message: `Delete ${count} selected image${count > 1 ? 's' : ''}?`,
+    header: 'Confirm Delete',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      deletingImages.value = true;
+      try {
+        await productStore.deleteImages(selectedImageIds.value);
+        const deleted = new Set(selectedImageIds.value);
+        images.value = images.value.filter((img) => !deleted.has(img.id));
+        variants.value.forEach((variant) => {
+          if (variant.image_id && deleted.has(variant.image_id)) variant.image_id = null;
+        });
+        if (selectedImageId.value && deleted.has(selectedImageId.value)) {
+          selectedImageId.value = coverImage.value?.id || null;
+        }
+        cancelImageSelect();
+        toast.add({ severity: 'success', summary: 'Deleted', detail: `${count} image${count > 1 ? 's' : ''} deleted`, life: 3000 });
+      } catch (error) {
+        const message = error.response?.data?.error || 'Failed to delete images';
+        toast.add({ severity: 'error', summary: 'Error', detail: message, life: 5000 });
+      } finally {
+        deletingImages.value = false;
+      }
+    }
+  });
+}
+
 function confirmRemoveImage(image) {
   confirm.require({
     message: 'Delete this image?',
@@ -329,6 +396,63 @@ function setVariantImage(imageId) {
   if (!variant) return;
   variant.image_id = variant.image_id === imageId ? null : imageId;
   if (variant.image_id) selectedImageId.value = imageId;
+}
+
+async function searchMergeCandidates() {
+  mergeSearching.value = true;
+  mergeSearched.value = false;
+  try {
+    const params = { limit: 20 };
+    if (mergeSearch.source_domain) params.source_domain = mergeSearch.source_domain;
+    if (mergeSearch.title) params.title = mergeSearch.title;
+    const results = await productStore.searchProducts(params);
+    mergeResults.value = results.filter((p) => p.id !== route.params.id);
+    mergeSelectedIds.value = mergeSelectedIds.value.filter((id) =>
+      mergeResults.value.some((p) => p.id === id)
+    );
+    mergeSearched.value = true;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to search products', life: 5000 });
+  } finally {
+    mergeSearching.value = false;
+  }
+}
+
+function toggleMergeSelection(id) {
+  if (mergeSelectedIds.value.includes(id)) {
+    mergeSelectedIds.value = mergeSelectedIds.value.filter((selected) => selected !== id);
+  } else {
+    mergeSelectedIds.value = [...mergeSelectedIds.value, id];
+  }
+}
+
+function mergeProductImage(product) {
+  return imageUrl(product.images?.[0]);
+}
+
+function confirmMerge() {
+  const count = mergeSelectedIds.value.length;
+  if (!count) return;
+  confirm.require({
+    message: `Merge ${count} product${count > 1 ? 's' : ''} into "${form.title}"? Their variants and images will be moved to this product and the duplicates will be deleted.`,
+    header: 'Confirm Merge',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      merging.value = true;
+      try {
+        const updated = await productStore.mergeProducts(route.params.id, mergeSelectedIds.value);
+        populate(updated);
+        mergeResults.value = mergeResults.value.filter((p) => !mergeSelectedIds.value.includes(p.id));
+        mergeSelectedIds.value = [];
+        toast.add({ severity: 'success', summary: 'Merged', detail: `${count} product${count > 1 ? 's' : ''} merged into this product`, life: 3000 });
+      } catch (error) {
+        const message = error.response?.data?.error || 'Failed to merge products';
+        toast.add({ severity: 'error', summary: 'Error', detail: message, life: 5000 });
+      } finally {
+        merging.value = false;
+      }
+    }
+  });
 }
 
 function setAsCover() {
@@ -384,12 +508,13 @@ onMounted(() => {
                 :key="image.id"
                 class="gallery-thumb"
                 :class="{
-                  'gallery-thumb-active': image.id === selectedImage?.id,
+                  'gallery-thumb-active': image.id === selectedImage?.id && !imageSelectMode,
+                  'gallery-thumb-selected': selectedImageIds.includes(image.id),
                   'gallery-thumb-over': dragOverIndex === index && dragIndex !== index,
                   'gallery-thumb-dragging': dragIndex === index
                 }"
-                draggable="true"
-                @click="selectedImageId = image.id"
+                :draggable="!imageSelectMode"
+                @click="onImageClick(image)"
                 @dragstart="onDragStart($event, index)"
                 @dragover.prevent="onDragOver(index)"
                 @drop.prevent="onDrop(index)"
@@ -397,9 +522,12 @@ onMounted(() => {
               >
                 <img :src="imageUrl(image)" :alt="image.alt || form.title" loading="lazy" draggable="false" />
                 <span class="gallery-thumb-pos">{{ index + 1 }}</span>
-                <button class="gallery-thumb-delete" type="button" @click.stop="confirmRemoveImage(image)">
+                <button v-if="!imageSelectMode" class="gallery-thumb-delete" type="button" @click.stop="confirmRemoveImage(image)">
                   <i class="pi pi-trash"></i>
                 </button>
+                <span v-if="imageSelectMode" class="gallery-thumb-check">
+                  <i class="pi" :class="selectedImageIds.includes(image.id) ? 'pi-check-circle' : 'pi-circle'"></i>
+                </span>
               </div>
               <button v-if="!isNew" class="gallery-add" type="button" @click="addImageVisible = true">
                 <i class="pi pi-plus"></i>
@@ -408,20 +536,46 @@ onMounted(() => {
 
             <div class="text-xs text-color-secondary mt-2">
               <template v-if="isNew">Save the product first to add images.</template>
+              <template v-else-if="imageSelectMode">Click images to select them for deletion.</template>
               <template v-else>
                 Drag the images to reorder them. The first image is the cover.
                 <span v-if="imagesDirty" class="text-orange-500 font-semibold">Unsaved order changes.</span>
               </template>
             </div>
-            <Button
-              v-if="!isNew && selectedImage && !selectedIsCover"
-              label="Set as cover"
-              icon="pi pi-image"
-              text
-              size="small"
-              class="mt-1 p-0"
-              @click="setAsCover"
-            />
+            <div v-if="!isNew" class="flex align-items-center justify-content-between mt-1">
+              <Button
+                v-if="selectedImage && !selectedIsCover && !imageSelectMode"
+                label="Set as cover"
+                icon="pi pi-image"
+                text
+                size="small"
+                class="p-0"
+                @click="setAsCover"
+              />
+              <span v-else></span>
+              <div class="flex align-items-center gap-2">
+                <template v-if="imageSelectMode">
+                  <span class="text-xs text-color-secondary">{{ selectedImageIds.length }} selected</span>
+                  <Button label="Cancel" text size="small" @click="cancelImageSelect" />
+                  <Button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    size="small"
+                    :disabled="!selectedImageIds.length || deletingImages"
+                    :loading="deletingImages"
+                    @click="confirmDeleteSelectedImages"
+                  />
+                </template>
+                <Button
+                  v-else-if="images.length"
+                  label="Select"
+                  icon="pi pi-check-square"
+                  text
+                  size="small"
+                  @click="imageSelectMode = true"
+                />
+              </div>
+            </div>
           </template>
         </Card>
 
@@ -467,6 +621,7 @@ onMounted(() => {
               <TabList>
                 <Tab value="general">General</Tab>
                 <Tab value="advanced">Advanced</Tab>
+                <Tab v-if="!isNew" value="merge">Merge</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel value="general">
@@ -537,6 +692,15 @@ onMounted(() => {
                           <span class="variant-chip-price">{{ formatPrice(variant.price) }}</span>
                         </button>
                       </div>
+                    </div>
+
+                    <div v-if="selectedVariant" class="flex flex-column gap-2">
+                      <label for="p-variant-title" class="text-sm font-semibold">Variant Name</label>
+                      <InputText
+                        id="p-variant-title"
+                        v-model="selectedVariant.title"
+                        placeholder="e.g. 100ml / Blue"
+                      />
                     </div>
 
                     <div v-if="selectedVariant" class="flex flex-column gap-2">
@@ -646,6 +810,93 @@ onMounted(() => {
                         <label class="text-sm font-semibold">Shopify Updated At</label>
                         <InputText :model-value="formatDate(form.shopify_updated_at)" disabled />
                       </div>
+                    </div>
+                  </div>
+                </TabPanel>
+
+                <TabPanel v-if="!isNew" value="merge">
+                  <div class="flex flex-column gap-4 pt-3">
+                    <p class="text-sm text-color-secondary m-0">
+                      Some sources save each variant as its own product. Find those duplicates and merge them
+                      here — their variants and images will be moved to this product and the duplicates deleted.
+                    </p>
+
+                    <div class="grid">
+                      <div class="col-12 md:col-5 flex flex-column gap-2">
+                        <label for="m-source" class="text-sm font-semibold">Source Domain</label>
+                        <Dropdown
+                          id="m-source"
+                          v-model="mergeSearch.source_domain"
+                          :options="sourceDomainOptions"
+                          editable
+                          show-clear
+                          placeholder="e.g. almamia.com"
+                        />
+                      </div>
+                      <div class="col-12 md:col-4 flex flex-column gap-2">
+                        <label for="m-title" class="text-sm font-semibold">Title</label>
+                        <InputText
+                          id="m-title"
+                          v-model="mergeSearch.title"
+                          placeholder="Search by title"
+                          @keyup.enter="searchMergeCandidates"
+                        />
+                      </div>
+                      <div class="col-12 md:col-3 flex align-items-end">
+                        <Button
+                          label="Search"
+                          icon="pi pi-search"
+                          class="w-full"
+                          :loading="mergeSearching"
+                          @click="searchMergeCandidates"
+                        />
+                      </div>
+                    </div>
+
+                    <div v-if="mergeSearching" class="flex flex-column gap-2">
+                      <Skeleton v-for="n in 3" :key="n" height="3.5rem" />
+                    </div>
+
+                    <div v-else-if="mergeResults.length" class="merge-results">
+                      <button
+                        v-for="product in mergeResults"
+                        :key="product.id"
+                        type="button"
+                        class="merge-row"
+                        :class="{ 'merge-row-active': mergeSelectedIds.includes(product.id) }"
+                        @click="toggleMergeSelection(product.id)"
+                      >
+                        <span class="merge-thumb">
+                          <img v-if="mergeProductImage(product)" :src="mergeProductImage(product)" :alt="product.title" loading="lazy" />
+                          <i v-else class="pi pi-image"></i>
+                        </span>
+                        <span class="merge-row-info">
+                          <span class="merge-row-title">{{ product.title }}</span>
+                          <span class="merge-row-meta">
+                            {{ product.source_domain }} · {{ product.variants?.length || 0 }} variant{{ (product.variants?.length || 0) === 1 ? '' : 's' }}
+                            <template v-if="product.variants?.[0]?.price != null"> · {{ formatPrice(product.variants[0].price) }}</template>
+                          </span>
+                        </span>
+                        <i
+                          class="pi merge-row-check"
+                          :class="mergeSelectedIds.includes(product.id) ? 'pi-check-circle' : 'pi-circle'"
+                        ></i>
+                      </button>
+                    </div>
+
+                    <div v-else-if="mergeSearched" class="text-sm text-color-secondary">
+                      No matching products found.
+                    </div>
+
+                    <div v-if="mergeResults.length" class="flex justify-content-end">
+                      <Button
+                        :label="`Merge selected (${mergeSelectedIds.length})`"
+                        icon="pi pi-clone"
+                        severity="warning"
+                        :disabled="!mergeSelectedIds.length || merging"
+                        :loading="merging"
+                        @click="confirmMerge"
+                      />
                     </div>
                   </div>
                 </TabPanel>
@@ -802,6 +1053,23 @@ onMounted(() => {
   display: inline-flex;
 }
 
+.gallery-thumb-selected {
+  border-color: var(--p-primary-color);
+}
+
+.gallery-thumb-check {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  font-size: 1rem;
+  color: var(--p-primary-color);
+  background: var(--p-content-background);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .gallery-add {
   aspect-ratio: 1 / 1;
   border-radius: 0.6rem;
@@ -887,5 +1155,82 @@ onMounted(() => {
 .variant-image-thumb-active {
   border-color: var(--p-primary-color);
   transform: scale(1.05);
+}
+
+.merge-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.merge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.6rem;
+  border: 1.5px solid var(--p-content-border-color);
+  background: var(--p-content-background);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.merge-row:hover {
+  border-color: var(--p-primary-color);
+}
+
+.merge-row-active {
+  border-color: var(--p-primary-color);
+  background: var(--p-highlight-background);
+  color: var(--p-highlight-color);
+}
+
+.merge-thumb {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: var(--p-surface-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--p-surface-400);
+}
+
+.merge-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.merge-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.merge-row-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.merge-row-meta {
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+}
+
+.merge-row-check {
+  font-size: 1.1rem;
+  color: var(--p-primary-color);
+  flex-shrink: 0;
 }
 </style>

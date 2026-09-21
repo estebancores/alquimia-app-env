@@ -5,6 +5,7 @@ const listValidators = [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('search').optional().trim().escape(),
+  query('title').optional().trim(),
   query('source_domain').optional().trim(),
   query('vendor').optional().trim(),
   query('product_type').optional().trim(),
@@ -48,6 +49,11 @@ const updateValidators = [
   body('images.*.position').optional().isInt()
 ];
 
+const mergeValidators = [
+  body('product_ids').isArray({ min: 1, max: 50 }),
+  body('product_ids.*').isUUID()
+];
+
 function buildAuditContext(req) {
   return { userId: req.user?.id, req };
 }
@@ -61,6 +67,7 @@ async function list(req, res, next) {
 
     const filters = {
       source_domain: req.query.source_domain,
+      title: req.query.title,
       vendor: req.query.vendor,
       product_type: req.query.product_type,
       status: req.query.status,
@@ -131,6 +138,20 @@ async function update(req, res, next) {
   }
 }
 
+async function merge(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const product = await productService.merge(req.params.id, req.body.product_ids, buildAuditContext(req));
+    res.json({ success: true, data: product });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function remove(req, res, next) {
   try {
     const result = await productService.delete(req.params.id, buildAuditContext(req));
@@ -140,4 +161,4 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { listValidators, createValidators, updateValidators, list, meta, get, create, update, remove };
+module.exports = { listValidators, createValidators, updateValidators, mergeValidators, list, meta, get, create, update, merge, remove };

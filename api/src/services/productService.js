@@ -18,6 +18,7 @@ class ProductService {
     const query = db('products');
 
     if (filters.source_domain) query.where('source_domain', filters.source_domain);
+    if (filters.title) query.whereRaw('LOWER(title) LIKE LOWER(?)', [`%${filters.title}%`]);
     if (filters.vendor) query.whereRaw('LOWER(vendor) LIKE LOWER(?)', [`%${filters.vendor}%`]);
     if (filters.product_type) query.whereRaw('LOWER(product_type) LIKE LOWER(?)', [`%${filters.product_type}%`]);
     if (filters.status) query.where('status', filters.status);
@@ -295,6 +296,103 @@ class ProductService {
     }
 
     return this.getById(id);
+  }
+
+  async merge(targetId, sourceIds, { userId, req }) {
+    const target = await db('products').where({ id: targetId }).first();
+    if (!target) {
+      const error = new Error('Product not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const uniqueIds = [...new Set(sourceIds)].filter((id) => id !== targetId);
+    if (!uniqueIds.length) {
+      const error = new Error('No valid products to merge');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const sourcesById = new Map(
+      (await db('products').whereIn('id', uniqueIds)).map((p) => [p.id, p])
+    );
+    const missing = uniqueIds.filter((id) => !sourcesById.has(id));
+    if (missing.length) {
+      const error = new Error(`Products not found: ${missing.join(', ')}`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const merged = [];
+
+    await db.transaction(async (trx) => {
+      const [variantMax, imageMax] = await Promise.all([
+        trx('product_variants').where({ product_id: targetId }).max('position as max').first(),
+        trx('product_images').where({ product_id: targetId }).max('position as max').first()
+      ]);
+      let nextVariantPos = (variantMax?.max ?? -1) + 1;
+      let nextImagePos = (imageMax?.max ?? -1) + 1;
+
+      for (const sourceId of uniqueIds) {
+        const source = sourcesById.get(sourceId);
+
+        const variants = await trx('product_variants')
+          .where({ product_id: sourceId })
+          .orderBy('position', 'asc');
+        for (const variant of variants) {
+          await trx('product_variants').where({ id: variant.id }).update({
+            product_id: targetId,
+            position: nextVariantPos++,
+            updated_at: new Date()
+          });
+        }
+
+        const images = await trx('product_images')
+          .where({ product_id: sourceId })
+          .orderBy('position', 'asc');
+        for (const image of images) {
+          await trx('product_images').where({ id: image.id }).update({
+            product_id: targetId,
+            position: nextImagePos++,
+            updated_at: new Date()
+          });
+        }
+
+        await trx('merged_products')
+          .insert({
+            source_domain: source.source_domain,
+            shopify_product_id: source.shopify_product_id,
+            merged_into: targetId,
+            created_at: new Date()
+          })
+          .onConflict(['source_domain', 'shopify_product_id'])
+          .merge(['merged_into']);
+
+        await trx('merged_products').where({ merged_into: sourceId }).update({ merged_into: targetId });
+
+        await trx('products').where({ id: sourceId }).delete();
+
+        merged.push({
+          id: source.id,
+          title: source.title,
+          shopify_product_id: source.shopify_product_id,
+          variants_moved: variants.length,
+          images_moved: images.length
+        });
+      }
+    });
+
+    await auditService.log({
+      userId,
+      productId: targetId,
+      action: 'MERGE',
+      tableName: 'products',
+      recordId: targetId,
+      payload: { merged_products: merged },
+      req
+    });
+
+    return this.getById(targetId);
   }
 
   async delete(id, { userId, req }) {

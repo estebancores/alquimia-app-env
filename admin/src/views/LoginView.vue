@@ -60,9 +60,20 @@ const authStore = useAuthStore();
 
 const submitted = ref(false);
 const form = reactive({
-  email: '',
-  password: ''
+  email: 'admin@alquimia.com',
+  password: 'AdminPassword123!'
 });
+
+
+
+
+
+
+
+
+
+
+
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isValidEmail = computed(() => emailRegex.test(form.email));

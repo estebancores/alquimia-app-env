@@ -28,6 +28,10 @@ async function main() {
   try {
     for (const product of products) {
       const { productId, created } = await service.createProduct(product, domain, job.id);
+      if (!productId) {
+        console.log(`Skipping previously merged product: ${product.title}`);
+        continue;
+      }
       if (!created) {
         if (await service.hasImages(productId)) {
           console.log(`Skipping existing product with images: ${product.title}`);

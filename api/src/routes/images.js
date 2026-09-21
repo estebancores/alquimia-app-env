@@ -13,5 +13,6 @@ router.get('/images/:id', generalLimiter, imageController.get);
 router.post('/products/:productId/images', authenticateToken, imageController.createValidators, imageController.create);
 router.put('/images/:id', authenticateToken, imageController.updateValidators, imageController.update);
 router.delete('/images/:id', authenticateToken, imageController.remove);
+router.post('/images/bulk-delete', authenticateToken, imageController.bulkDeleteValidators, imageController.bulkRemove);
 
 module.exports = router;

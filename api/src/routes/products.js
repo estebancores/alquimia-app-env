@@ -13,6 +13,7 @@ router.get('/:id', generalLimiter, productController.get);
 // Admin write endpoints
 router.post('/', authenticateToken, productController.createValidators, productController.create);
 router.put('/:id', authenticateToken, productController.updateValidators, productController.update);
+router.post('/:id/merge', authenticateToken, productController.mergeValidators, productController.merge);
 router.delete('/:id', authenticateToken, productController.remove);
 
 module.exports = router;
