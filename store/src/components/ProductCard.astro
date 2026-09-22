@@ -23,7 +23,7 @@ const extraColors = coloredVariants.length - shownColors.length;
 const showSwatches = product.variants.length > 1 && coloredVariants.length > 0;
 ---
 
-<a href={`/product/${product.handle}`} class="group block" data-astro-prefetch="viewport">
+<a href={`/product/${product.handle}`} class="group block" data-astro-prefetch="hover">
   <div class="relative aspect-[4/5] overflow-hidden bg-bone">
     <ProductImage
       image={image}

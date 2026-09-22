@@ -1,8 +1,16 @@
 const rateLimit = require('express-rate-limit');
 
+// Trusted server-side callers (the Astro storefront) send a shared secret so
+// bursts of SSR renders / link prefetches from a single IP aren't throttled.
+const isInternalRequest = (req) => {
+  const key = process.env.INTERNAL_API_KEY;
+  return Boolean(key) && req.get('x-internal-key') === key;
+};
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  skip: isInternalRequest,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests, please try again later.' }

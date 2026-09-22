@@ -8,6 +8,8 @@ import type {
 import { slugify } from './format';
 
 const API_BASE = import.meta.env.API_BASE_URL ?? 'http://localhost:3001';
+// Shared secret sent to the API so server-side SSR traffic isn't rate-limited.
+const INTERNAL_API_KEY = import.meta.env.INTERNAL_API_KEY as string | undefined;
 
 export class ApiError extends Error {
   constructor(
@@ -23,42 +25,67 @@ export class ApiError extends Error {
 /**
  * Tiny in-memory TTL cache. Railway has no ISR, so SSR + short-lived server
  * cache is our equivalent: repeated requests within the TTL never hit the API.
+ *
+ * `inflight` dedupes concurrent identical requests (link prefetch fires many
+ * SSR renders at once on a cold cache). `errorCache` briefly caches failures
+ * so a rate-limited or down API isn't hammered on every render.
  */
 const cache = new Map<string, { expires: number; data: unknown }>();
+const inflight = new Map<string, Promise<unknown>>();
+const errorCache = new Map<string, { expires: number; error: ApiError }>();
+const ERROR_TTL_MS = 5_000;
 
-async function fetchJson<T>(path: string, ttlMs = 60_000): Promise<T> {
-  const url = `${API_BASE}${path}`;
-  const cached = cache.get(url);
-  if (cached && cached.expires > Date.now()) return cached.data as T;
-
+async function request<T>(url: string, ttlMs: number): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   let res: Response;
   try {
     res = await fetch(url, {
-      headers: { accept: 'application/json' },
+      headers: {
+        accept: 'application/json',
+        ...(INTERNAL_API_KEY ? { 'x-internal-key': INTERNAL_API_KEY } : {}),
+      },
       signal: controller.signal,
     });
   } catch (err) {
-    throw new ApiError(
+    const error = new ApiError(
       err instanceof Error && err.name === 'AbortError'
         ? 'API request timed out'
         : `API unreachable: ${(err as Error).message}`,
       0,
       url,
     );
+    errorCache.set(url, { expires: Date.now() + ERROR_TTL_MS, error });
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
 
   if (!res.ok) {
-    throw new ApiError(`API responded ${res.status}`, res.status, url);
+    const error = new ApiError(`API responded ${res.status}`, res.status, url);
+    errorCache.set(url, { expires: Date.now() + ERROR_TTL_MS, error });
+    throw error;
   }
   const body = (await res.json()) as { success: boolean; data: T; pagination?: unknown };
   if (!body.success) throw new ApiError('API returned success: false', res.status, url);
 
   cache.set(url, { expires: Date.now() + ttlMs, data: body });
   return body as unknown as T;
+}
+
+async function fetchJson<T>(path: string, ttlMs = 60_000): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const cached = cache.get(url);
+  if (cached && cached.expires > Date.now()) return cached.data as T;
+  const errHit = errorCache.get(url);
+  if (errHit && errHit.expires > Date.now()) throw errHit.error;
+
+  let pending = inflight.get(url) as Promise<T> | undefined;
+  if (!pending) {
+    pending = request<T>(url, ttlMs).finally(() => inflight.delete(url));
+    inflight.set(url, pending);
+  }
+  return pending;
 }
 
 interface RawListResponse {
@@ -127,12 +154,18 @@ export async function getNewArrivals(limit = 8): Promise<Product[]> {
 }
 
 /**
- * Categories are derived from distinct `product_type` values. Each gets a
- * representative image from its first product. Results are cached (5 min).
+ * Categories are derived from distinct `product_type` values. Thumbnails come
+ * from `meta.categories` (one API call, cached 5 min); older API versions
+ * without that field fall back to a per-type product query.
  */
 export async function getCategories(max = 8): Promise<Category[]> {
   const meta = await getFilterMeta();
   const types = meta.product_types.filter(Boolean).slice(0, max);
+
+  if (meta.categories) {
+    const imageByName = new Map(meta.categories.map((c) => [c.name, c.image]));
+    return types.map((name) => ({ name, slug: slugify(name), image: imageByName.get(name) ?? null }));
+  }
 
   return Promise.all(
     types.map(async (name): Promise<Category> => {

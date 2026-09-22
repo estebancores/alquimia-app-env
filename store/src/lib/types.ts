@@ -67,6 +67,8 @@ export interface PriceRange {
 export interface FilterMeta {
   vendors: string[];
   product_types: string[];
+  /** Representative image per product_type (absent in older API versions). */
+  categories?: { name: string; image: ProductImage | null }[];
   source_domains: string[];
   statuses: string[];
   price: {

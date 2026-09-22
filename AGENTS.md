@@ -89,6 +89,17 @@ checks these tombstones so re-scraping a domain does not resurrect merged duplic
 `GET /products` also accepts a `title` query param (case-insensitive LIKE) for finding
 merge candidates; it is used by the admin "Merge duplicate products" section.
 
+`GET /products/meta` returns filter metadata plus `categories`: `[{ name, image }]` —
+a representative image (first image of the newest public product) per `product_type`,
+so the storefront builds category tiles with a single request.
+
+### Rate limiting
+
+`src/middleware/rateLimiter.js` applies `generalLimiter` (1000 req / 15 min per IP)
+to all requests. Trusted server-side callers (the `store/` app) bypass it by sending
+the `x-internal-key` header matching `INTERNAL_API_KEY` in `.env`. Set the same value
+in `store/.env`; leave it empty to disable the bypass.
+
 ## Admin
 
 The `admin/` package is a Vue 3 SPA for managing the Alquimia store. It uses Vite, Vue Router, Pinia, and PrimeVue.
@@ -156,7 +167,7 @@ The `store/` package is the customer-facing storefront: Astro 7 (SSR, Node adapt
 ```bash
 cd store
 npm install
-cp .env.example .env   # API_BASE_URL, PUBLIC_SITE_URL, PUBLIC_WHATSAPP_NUMBER
+cp .env.example .env   # API_BASE_URL, PUBLIC_SITE_URL, PUBLIC_WHATSAPP_NUMBER, INTERNAL_API_KEY
 npm run dev            # http://localhost:4321, requires api/ on :3001
 ```
 
@@ -169,7 +180,8 @@ npm run build   # production build; npm start serves dist/server/entry.mjs
 
 ### Key facts
 
-- Fully SSR (`output: 'server'`); caching via in-memory TTL in `src/lib/api.ts` + `Cache-Control` headers set in `BaseLayout.astro`.
+- Fully SSR (`output: 'server'`); caching via in-memory TTL in `src/lib/api.ts` + `Cache-Control` headers set in `BaseLayout.astro`. The cache also dedupes concurrent identical requests (single-flight) and negative-caches failures for 5s.
+- Link prefetching uses `defaultStrategy: 'hover'` (not `viewport`) — every SSR render costs API calls, so prefetching on viewport entry bursts the API. Sends `x-internal-key` (env `INTERNAL_API_KEY`) to bypass the API rate limiter.
 - Routes: `/` (home), `/shop` (all products + `?search=`), `/[category]` (slugified `product_type`), `/product/[slug]` (product `handle`), `/cart`, dynamic `sitemap.xml` (with image extensions) and `robots.txt` (explicit AI-crawler rules), `llms.txt` + `llms-full.txt` (LLM-readable catalog).
 - SEO lives in `src/components/SEO.astro` (meta/OG/Twitter/geo/hreflang) and `src/lib/jsonld.ts` (Organization+OnlineStore, WebSite+SearchAction, BreadcrumbList, Product, CollectionPage, ItemList). Site identity/geo/social config is centralized in `src/lib/site.ts` and env-overridable (`PUBLIC_GEO_*`, `PUBLIC_SOCIAL_URLS`, `PUBLIC_TWITTER_HANDLE`).
 - Storefront only shows `public=true` products (scraped products keep `status='draft'`, so status is not filtered).

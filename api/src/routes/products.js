@@ -1,13 +1,12 @@
 const express = require('express');
 const productController = require('../controllers/productController');
 const { authenticateToken } = require('../middleware/auth');
-const { generalLimiter, strictLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 // Public read endpoints
 router.get('/', productController.listValidators, productController.list);
-router.get('/meta', generalLimiter, productController.meta);
+router.get('/meta', productController.meta);
 router.get('/:id', productController.get);
 
 // Admin write endpoints

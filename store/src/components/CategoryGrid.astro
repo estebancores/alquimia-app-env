@@ -34,7 +34,7 @@ const stripItems = [
 {variant === 'editorial' ? (
   <div class="grid grid-cols-2 gap-gutter md:grid-cols-4">
     {categories.map((cat) => (
-      <a href={`/${cat.slug}`} class="group block" data-astro-prefetch="viewport">
+      <a href={`/${cat.slug}`} class="group block" data-astro-prefetch="hover">
         <div class="aspect-3/4 overflow-hidden bg-bone">
           <CategoryMedia
             media={localMediaFor(cat.slug)}
@@ -56,7 +56,7 @@ const stripItems = [
           <a
             href={item.href}
             class="group block w-32 sm:w-40"
-            data-astro-prefetch="viewport"
+            data-astro-prefetch="hover"
             aria-current={active ? 'page' : undefined}
           >
             <div class={`aspect-3/4 overflow-hidden border-2 bg-bone transition-all duration-200 group-hover:border-ink group-hover:p-0.5 ${active ? 'border-ink p-0.5' : 'border-transparent'}`}>

@@ -18,10 +18,12 @@ export default defineConfig({
   adapter: node({ mode: 'standalone' }),
   integrations: [preact({ compat: false })],
   // Built-in prefetch (replaces the deprecated @astrojs/prefetch integration).
-  // Links get prefetched when they enter the viewport.
+  // 'hover': pages prefetch on hover/tap intent only. 'viewport' prefetched
+  // every visible link, and since each SSR render costs several API calls, a
+  // single pageview triggered ~30 server renders and tripped the API's 429s.
   prefetch: {
     prefetchAll: true,
-    defaultStrategy: 'viewport',
+    defaultStrategy: 'hover',
   },
   image: {
     // Product images live on Cloudflare R2 (and occasionally Shopify CDN).

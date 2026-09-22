@@ -124,18 +124,35 @@ class ProductService {
         .count('id as count')
         .first();
 
-    const [vendors, productTypes, sourceDomains, statuses, priceBounds, rangeCounts] = await Promise.all([
+    const [vendors, productTypes, sourceDomains, statuses, priceBounds, rangeCounts, thumbnails] = await Promise.all([
       db('products').distinct('vendor').whereNotNull('vendor').orderBy('vendor'),
       db('products').distinct('product_type').whereNotNull('product_type').orderBy('product_type'),
       db('products').distinct('source_domain').whereNotNull('source_domain').orderBy('source_domain'),
       db('products').distinct('status').whereNotNull('status').orderBy('status'),
       db('product_variants').min('price as min').max('price as max').first(),
-      Promise.all(priceRanges.map(countInRange))
+      Promise.all(priceRanges.map(countInRange)),
+      // First image (lowest position) of the newest public product per type —
+      // lets the storefront render category tiles without N+1 product queries.
+      db('products as p')
+        .join('product_images as pi', 'pi.product_id', 'p.id')
+        .whereNotNull('p.product_type')
+        .where('p.public', true)
+        .distinctOn('p.product_type')
+        .select('p.product_type', 'pi.*')
+        .orderBy('p.product_type')
+        .orderBy('p.created_at', 'desc')
+        .orderBy('pi.position', 'asc')
     ]);
+
+    const thumbnailByType = new Map(thumbnails.map((row) => [row.product_type, row]));
 
     return {
       vendors: vendors.map((row) => row.vendor),
       product_types: productTypes.map((row) => row.product_type),
+      categories: productTypes.map((row) => {
+        const { product_type, ...image } = thumbnailByType.get(row.product_type) ?? {};
+        return { name: row.product_type, image: product_type ? image : null };
+      }),
       source_domains: sourceDomains.map((row) => row.source_domain),
       statuses: statuses.map((row) => row.status),
       price: {
