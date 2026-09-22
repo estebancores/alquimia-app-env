@@ -1,5 +1,8 @@
 import { persistentAtom } from '@nanostores/persistent';
 import { computed } from 'nanostores';
+import { FREE_SHIPPING_THRESHOLD } from '../lib/constants';
+
+export { FREE_SHIPPING_THRESHOLD };
 
 export interface CartItem {
   productId: string;
@@ -72,6 +75,7 @@ export function whatsappOrderUrl(phone: string): string {
     ...lines,
     '',
     `Total: $${total.toLocaleString('es-CO')} COP`,
+    ...(total >= FREE_SHIPPING_THRESHOLD ? ['Envío: gratis'] : []),
   ].join('\n');
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }

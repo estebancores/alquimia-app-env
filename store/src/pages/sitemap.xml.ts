@@ -18,6 +18,7 @@ export const GET: APIRoute = async ({ site, url }) => {
   const urls: { loc: string; lastmod?: string; priority: string }[] = [
     { loc: `${base}/`, priority: '1.0' },
     { loc: `${base}/shop`, priority: '0.9' },
+    { loc: `${base}/terminos`, priority: '0.3' },
   ];
 
   const countByType = new Map<string, number>();

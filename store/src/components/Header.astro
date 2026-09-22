@@ -1,8 +1,12 @@
 ---
 import CartIndicator from '../islands/CartIndicator';
 import { getCategories } from '../lib/api';
+import { formatPrice } from '../lib/format';
+import { FREE_SHIPPING_THRESHOLD } from '../lib/constants';
 import Logo from '../assets/logo.svg';
 import type { Category } from '../lib/types';
+
+const announcement = `Envío gratis por compras mayores a ${formatPrice(FREE_SHIPPING_THRESHOLD)}`;
 
 let categories: Category[] = [];
 try {
@@ -14,6 +18,20 @@ try {
 ---
 
 <header class="bg-white">
+  <div class="overflow-hidden bg-ink py-2 text-cream">
+    <div class="flex w-max whitespace-nowrap motion-safe:animate-[marquee_30s_linear_infinite]">
+      <div class="flex">
+        {Array.from({ length: 4 }).map(() => (
+          <span class="px-10 text-[11px] tracking-widest uppercase">{announcement}</span>
+        ))}
+      </div>
+      <div class="flex" aria-hidden="true">
+        {Array.from({ length: 4 }).map(() => (
+          <span class="px-10 text-[11px] tracking-widest uppercase">{announcement}</span>
+        ))}
+      </div>
+    </div>
+  </div>
   <div class="mx-auto flex w-[95%] items-center justify-between gap-6 px-gutter py-4">
     <a href="/" class="shrink-0" aria-label="Alquimia — inicio">
       <Logo class="h-16 w-auto md:h-20" />

@@ -1,0 +1,382 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { formatPrice } from '../lib/format';
+import { FREE_SHIPPING_THRESHOLD } from '../lib/constants';
+
+const whatsappNumber = import.meta.env.PUBLIC_WHATSAPP_NUMBER ?? '';
+const crumbs = [
+  { name: 'Inicio', href: '/' },
+  { name: 'Términos y políticas', href: '/terminos' },
+];
+
+const index = [
+  { id: 'terminos-del-servicio', label: '1. Términos del servicio' },
+  { id: 'envios-y-entregas', label: '2. Envíos y entregas' },
+  { id: 'politica-de-reembolso', label: '3. Política de reembolso' },
+  { id: 'datos-personales', label: '4. Datos personales' },
+];
+---
+
+<BaseLayout
+  title="Términos y políticas"
+  description="Términos del servicio, condiciones de envío y política de tratamiento de datos personales de Alquimia brand CO."
+  canonical="/terminos"
+>
+  <div class="mx-auto max-w-6xl px-gutter py-10">
+    <Breadcrumbs crumbs={crumbs} />
+    <h1 class="mt-6 font-serif text-4xl">Términos y políticas</h1>
+    <p class="mt-3 text-sm text-taupe">Última actualización: septiembre de 2026.</p>
+
+    <div class="mt-10 grid gap-12 lg:grid-cols-[240px_1fr]">
+      <aside class="lg:sticky lg:top-24 lg:h-fit">
+        <nav aria-label="Índice de términos">
+          <h2 class="text-xs font-medium tracking-widest text-stone uppercase">Índice</h2>
+          <ul class="mt-4 space-y-2.5 text-sm">
+            {index.map((item) => (
+              <li>
+                <a href={`#${item.id}`} class="text-taupe transition-colors hover:text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      <div class="max-w-3xl space-y-16 text-sm leading-relaxed text-taupe">
+        <section id="terminos-del-servicio" class="scroll-mt-24">
+          <h2 class="font-serif text-2xl text-ink">1. Términos del servicio</h2>
+
+          <h3 class="mt-8 font-medium text-ink">1.1 Información general</h3>
+          <p class="mt-3">
+            Este sitio web está a cargo de Alquimia brand CO. En todo el sitio, los términos
+            "nosotros", "nos" y "nuestro" se refieren a Alquimia brand CO. Alquimia brand CO
+            ofrece este sitio web, incluyendo toda la información, herramientas y servicios
+            disponibles en él, condicionado a la aceptación por parte del usuario de todos los
+            términos, condiciones, políticas y avisos aquí establecidos.
+          </p>
+          <p class="mt-3">
+            Al visitar nuestro sitio o comprar algo que ofrecemos, el usuario participa en nuestro
+            "Servicio" y acepta estar sujeto a estos términos y condiciones, incluidos aquellos
+            términos y políticas adicionales a los que se hace referencia en este documento.
+            Si no está de acuerdo con ellos, no podrá acceder al sitio web ni utilizar ningún
+            servicio.
+          </p>
+          <p class="mt-3">
+            Nos reservamos el derecho de actualizar, cambiar o reemplazar cualquier parte de estos
+            Términos del servicio mediante la publicación de actualizaciones en nuestro sitio web.
+            El uso continuado del sitio tras la publicación de cambios implica la aceptación de
+            dichos cambios.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.2 Términos de la tienda online</h3>
+          <p class="mt-3">
+            Al aceptar estos términos, el usuario declara que tiene la mayoría de edad prevista en
+            la legislación colombiana, o que cuenta con la autorización de un mayor de edad
+            responsable. No se permite el uso de nuestros productos para fines ilegales o no
+            autorizados, ni infringir ley alguna en el uso del servicio. El incumplimiento de
+            cualquiera de estos términos dará lugar a la terminación inmediata de los servicios.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.3 Condiciones generales</h3>
+          <p class="mt-3">
+            Nos reservamos el derecho a denegar el servicio a cualquier persona por cualquier motivo
+            y en cualquier momento. El usuario se compromete a no reproducir, duplicar, copiar,
+            vender, revender ni explotar ninguna parte del servicio sin permiso expreso y por
+            escrito de nuestra parte. Los títulos utilizados en este acuerdo se incluyen únicamente
+            por conveniencia.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.4 Exactitud y actualidad de la información</h3>
+          <p class="mt-3">
+            El material de este sitio se proporciona con fines informativos generales. Hacemos todo
+            lo posible por mantener la información precisa y actualizada; sin embargo, no garantizamos
+            que esté libre de errores. Nos reservamos el derecho a modificar el contenido del sitio
+            en cualquier momento sin previo aviso.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.5 Modificaciones al servicio y precios</h3>
+          <p class="mt-3">
+            Los precios de nuestros productos están sujetos a cambios sin previo aviso. Nos
+            reservamos el derecho a modificar o interrumpir el servicio (o cualquier parte o
+            contenido del mismo) en cualquier momento. No seremos responsables ante el usuario ni
+            ante terceros por modificaciones, cambios de precio, suspensiones o interrupciones del
+            servicio.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.6 Productos</h3>
+          <p class="mt-3">
+            Ciertos productos pueden estar disponibles exclusivamente online y en cantidades
+            limitadas. Hemos hecho todo lo posible para mostrar con la mayor precisión los colores
+            y las imágenes de nuestros productos; no podemos garantizar que la visualización en cada
+            pantalla sea exacta. Nos reservamos el derecho a limitar las cantidades de productos
+            ofrecidos y a retirar cualquier producto en cualquier momento.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.7 Pedidos y facturación</h3>
+          <p class="mt-3">
+            Los pedidos se gestionan y confirman a través de WhatsApp. Nos reservamos el derecho de
+            rechazar cualquier pedido y, a nuestra entera discreción, limitar o cancelar las
+            cantidades compradas por persona, hogar o pedido. En caso de modificar o cancelar un
+            pedido, intentaremos notificarlo mediante los datos de contacto facilitados al momento
+            de realizar el pedido.
+          </p>
+          <p class="mt-3">
+            El usuario se compromete a proporcionar información de compra actual, completa y precisa,
+            y a actualizarla puntualmente para que podamos completar las transacciones y ponernos en
+            contacto cuando sea necesario.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.8 Enlaces de terceros</h3>
+          <p class="mt-3">
+            Ciertos contenidos, productos y servicios disponibles a través de nuestro servicio pueden
+            incluir enlaces a sitios web de terceros. No somos responsables de examinar o evaluar el
+            contenido o la exactitud de sitios de terceros, ni garantizamos ni asumimos
+            responsabilidad alguna por materiales, productos o servicios de terceros.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.9 Errores, inexactitudes y omisiones</h3>
+          <p class="mt-3">
+            Puede haber información en el sitio que contenga errores tipográficos, inexactitudes u
+            omisiones relacionadas con descripciones de productos, precios, promociones, ofertas,
+            cargos de envío o disponibilidad. Nos reservamos el derecho de corregir cualquier error,
+            inexactitud u omisión, y de cambiar o actualizar información o cancelar pedidos si
+            cualquier información del servicio es inexacta, en cualquier momento y sin previo aviso.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.10 Usos prohibidos</h3>
+          <p class="mt-3">
+            Está prohibido usar el sitio o su contenido para fines ilegales, para incitar a terceros
+            a realizar actos ilegales, para violar regulaciones o leyes, para infringir derechos de
+            propiedad intelectual, para acosar o discriminar, para enviar información falsa, para
+            cargar virus o código malicioso, para extraer datos de otros usuarios, o para interferir
+            con las funciones de seguridad del servicio. La violación de estos usos prohibidos
+            resultará en la terminación del acceso al servicio.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.11 Exclusión de garantías y limitación de responsabilidad</h3>
+          <p class="mt-3">
+            El servicio se proporciona "como está" y "según disponibilidad". En la máxima medida
+            permitida por la ley colombiana, Alquimia brand CO no será responsable por daños
+            indirectos, incidentales o consecuentes derivados del uso del servicio o de los
+            productos adquiridos, sin perjuicio de los derechos irrenunciables del consumidor
+            previstos en el Estatuto del Consumidor (Ley 1480 de 2011).
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.12 Ley aplicable y jurisdicción</h3>
+          <p class="mt-3">
+            Estos Términos del servicio se rigen e interpretan de acuerdo con las leyes de la
+            República de Colombia. Cualquier controversia será sometida a los jueces competentes
+            de Colombia.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">1.13 Contacto</h3>
+          <p class="mt-3">
+            Las preguntas sobre estos términos pueden enviarse a través de nuestro canal oficial de
+            {whatsappNumber ? (
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                rel="noopener"
+                class="text-ink underline"
+              >
+                WhatsApp
+              </a>
+            ) : (
+              'WhatsApp'
+            )}.
+          </p>
+        </section>
+
+        <section id="envios-y-entregas" class="scroll-mt-24">
+          <h2 class="font-serif text-2xl text-ink">2. Términos de envío y entrega</h2>
+
+          <h3 class="mt-8 font-medium text-ink">2.1 Cobertura</h3>
+          <p class="mt-3">
+            Realizamos envíos a todo el territorio colombiano a través de transportadoras
+            aliadas. Algunas zonas de difícil acceso pueden tener condiciones o tiempos de entrega
+            especiales, que se informarán al momento de confirmar el pedido por WhatsApp.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">2.2 Tiempos de despacho y entrega</h3>
+          <p class="mt-3">
+            Una vez confirmado el pedido por WhatsApp, el despacho se realiza en un plazo de 1 a 3
+            días hábiles. El tiempo de entrega estimado es de 2 a 7 días hábiles dependiendo de la
+            ciudad de destino. Estos tiempos son estimados y pueden variar por causas ajenas a
+            Alquimia brand CO (novedades de la transportadora, clima, orden público, festividades).
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">2.3 Costos de envío</h3>
+          <p class="mt-3">
+            Los pedidos con un valor igual o superior a {formatPrice(FREE_SHIPPING_THRESHOLD)} tienen
+            envío gratis a todo el país. Para pedidos de menor valor, el costo del envío se informa
+            y confirma por WhatsApp antes de concretar la compra.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">2.4 Datos de entrega</h3>
+          <p class="mt-3">
+            El cliente es responsable de suministrar una dirección de entrega completa y correcta,
+            así como un número de contacto válido. Alquimia brand CO no se hace responsable por
+            retrasos o pérdidas ocasionadas por información de entrega errónea o incompleta.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">2.5 Recepción y novedades</h3>
+          <p class="mt-3">
+            Al recibir el pedido, el cliente debe verificar el estado del paquete. Si el empaque
+            presenta daños visibles o faltantes, debe registrarlo ante la transportadora e
+            informarlo a Alquimia brand CO por WhatsApp dentro de las 24 horas siguientes a la
+            entrega, adjuntando evidencia fotográfica.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">2.6 Derecho de retracto</h3>
+          <p class="mt-3">
+            De conformidad con el artículo 47 de la Ley 1480 de 2011 (Estatuto del Consumidor), el
+            cliente puede ejercer el derecho de retracto dentro de los cinco (5) días hábiles
+            siguientes a la entrega del producto, siempre que el producto se encuentre en perfecto
+            estado, sin uso y con sus etiquetas y empaques originales. Para ejercerlo, el cliente
+            debe comunicarlo por WhatsApp; los costos de devolución correrán por cuenta del cliente,
+            salvo defecto o error atribuible a Alquimia brand CO.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">2.7 Cambios y garantías</h3>
+          <p class="mt-3">
+            Si el producto recibido presenta defectos de fabricación o no corresponde al pedido
+            confirmado, el cliente puede solicitar el cambio o la devolución dentro de los cinco (5)
+            días hábiles siguientes a la entrega, escribiendo por WhatsApp con evidencia del
+            inconveniente. En estos casos, Alquimia brand CO asumirá los costos de envío asociados.
+            No aplican cambios por mal uso, desgaste normal o daños posteriores a la entrega.
+          </p>
+        </section>
+
+        <section id="politica-de-reembolso" class="scroll-mt-24">
+          <h2 class="font-serif text-2xl text-ink">3. Política de reembolso</h2>
+
+          <h3 class="mt-8 font-medium text-ink">3.1 Devoluciones</h3>
+          <p class="mt-3">
+            Tenemos una política de devolución de 5 días: dispones de cinco (5) días hábiles después
+            de recibir el artículo para solicitar una devolución. El artículo debe estar en el mismo
+            estado en que lo recibiste — sin usar, con las etiquetas y en su embalaje original — y
+            necesitarás el recibo o comprobante de compra.
+          </p>
+          <p class="mt-3">
+            Para iniciar una devolución, contáctanos por nuestro canal oficial de
+            {whatsappNumber ? (
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                rel="noopener"
+                class="text-ink underline"
+              >
+                WhatsApp
+              </a>
+            ) : (
+              'WhatsApp'
+            )}. Si se acepta la devolución, te enviaremos las instrucciones sobre cómo y dónde
+            enviar el paquete. No se aceptarán artículos devueltos sin haber solicitado previamente
+            la devolución.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">3.2 Daños y problemas</h3>
+          <p class="mt-3">
+            Revisa tu pedido en cuanto lo recibas y contáctanos de inmediato si el artículo está
+            defectuoso, dañado o si recibiste un artículo equivocado, para que podamos evaluar el
+            problema y solucionarlo. Ten en cuenta que no podemos aceptar devoluciones de artículos
+            en oferta ni de tarjetas de regalo.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">3.3 Periodo de reflexión</h3>
+          <p class="mt-3">
+            Tienes derecho a anular o devolver tu pedido en un plazo de cinco (5) días hábiles, por
+            cualquier motivo y sin necesidad de justificación, conforme al derecho de retracto del
+            artículo 47 de la Ley 1480 de 2011. Si el producto no presenta ninguna falla o
+            imperfecto, el cliente asumirá los gastos de envío de la devolución. El artículo debe
+            estar en las mismas condiciones en que lo recibiste: sin usar, con las etiquetas y en su
+            embalaje original, junto con el recibo o comprobante de compra.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">3.4 Reembolsos</h3>
+          <p class="mt-3">
+            Te informaremos cuando hayamos recibido e inspeccionado tu devolución y te comunicaremos
+            si el reembolso fue aprobado o no. Si se aprueba, el reembolso se realizará a través del
+            medio de pago utilizado en la compra, en un plazo de cinco (5) días hábiles. Ten en
+            cuenta que el banco o la entidad emisora pueden tardar algún tiempo adicional en hacer
+            efectivo el reembolso. Si han transcurrido más de quince (15) días hábiles desde que
+            aprobamos tu devolución sin recibir el reembolso, contáctanos por WhatsApp.
+          </p>
+        </section>
+
+        <section id="datos-personales" class="scroll-mt-24">
+          <h2 class="font-serif text-2xl text-ink">4. Política de tratamiento de datos personales</h2>
+
+          <h3 class="mt-8 font-medium text-ink">4.1 Responsable del tratamiento</h3>
+          <p class="mt-3">
+            Alquimia brand CO es el responsable del tratamiento de los datos personales recolectados
+            a través de este sitio web y de nuestro canal de WhatsApp, en cumplimiento de la Ley 1581
+            de 2012, el Decreto 1377 de 2013 y demás normas que las modifiquen o complementen.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">4.2 Datos recolectados</h3>
+          <p class="mt-3">
+            Para gestionar pedidos recolectamos los datos que el cliente suministra voluntariamente
+            por WhatsApp o por el sitio: nombre, número de teléfono, dirección de entrega, ciudad y
+            correo electrónico cuando aplique. No recolectamos datos de tarjetas ni información
+            financiera sensible en este sitio.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">4.3 Finalidades del tratamiento</h3>
+          <ul class="mt-3 list-disc space-y-1.5 pl-5">
+            <li>Gestionar, confirmar y entregar los pedidos realizados.</li>
+            <li>Atender consultas, reclamos, cambios y garantías.</li>
+            <li>Cumplir obligaciones legales y contables derivadas de la venta.</li>
+            <li>
+              Con la autorización del titular, enviar información sobre productos, novedades y
+              promociones.
+            </li>
+          </ul>
+
+          <h3 class="mt-8 font-medium text-ink">4.4 Derechos del titular</h3>
+          <p class="mt-3">
+            De acuerdo con el artículo 8 de la Ley 1581 de 2012, el titular de los datos personales
+            tiene derecho a: conocer, actualizar y rectificar sus datos; solicitar prueba de la
+            autorización otorgada; ser informado sobre el uso dado a sus datos; presentar quejas
+            ante la Superintendencia de Industria y Comercio; revocar la autorización y solicitar la
+            supresión de sus datos cuando no se respeten los principios y garantías legales; y
+            acceder gratuitamente a los datos objeto de tratamiento.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">4.5 Autorización y vigencia</h3>
+          <p class="mt-3">
+            Al suministrar sus datos para realizar un pedido, el titular autoriza su tratamiento para
+            las finalidades descritas. Los datos se conservarán durante el tiempo necesario para
+            cumplir dichas finalidades y las obligaciones legales aplicables.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">4.6 Seguridad de la información</h3>
+          <p class="mt-3">
+            Alquimia brand CO adopta medidas técnicas y administrativas razonables para proteger los
+            datos personales contra acceso no autorizado, pérdida, adulteración o uso indebido. Los
+            datos no se venden ni se comparten con terceros, salvo con las transportadoras
+            encargadas de la entrega y cuando una autoridad competente lo requiera.
+          </p>
+
+          <h3 class="mt-8 font-medium text-ink">4.7 Consultas y reclamos</h3>
+          <p class="mt-3">
+            Para ejercer sus derechos, formular consultas o presentar reclamos sobre el tratamiento
+            de sus datos personales, el titular puede escribir a nuestro canal oficial de
+            {whatsappNumber ? (
+              <a
+                href={`https://wa.me/${whatsappNumber}`}
+                rel="noopener"
+                class="text-ink underline"
+              >
+                WhatsApp
+              </a>
+            ) : (
+              'WhatsApp'
+            )}. Las consultas serán atendidas dentro de los términos previstos en la Ley 1581 de
+            2012.
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

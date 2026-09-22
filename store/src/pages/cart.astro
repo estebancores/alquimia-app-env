@@ -19,7 +19,12 @@ const crumbs = [
 >
   <div class="mx-auto max-w-5xl px-gutter py-10">
     <Breadcrumbs crumbs={crumbs} />
-    <h1 class="mt-6 font-serif text-4xl">Carrito</h1>
+    <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
+      <h1 class="font-serif text-4xl">Carrito</h1>
+      <a href="/shop" class="text-sm tracking-wide text-taupe underline transition-colors hover:text-ink">
+        ← Seguir comprando
+      </a>
+    </div>
     <div class="mt-10">
       <CartContents client:load whatsappNumber={whatsappNumber} />
     </div>

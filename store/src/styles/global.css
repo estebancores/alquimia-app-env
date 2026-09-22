@@ -36,6 +36,19 @@ h1, h2, h3 {
   background: var(--color-sand);
 }
 
+/* One-shot celebration pop (e.g. free-shipping badge) */
+@keyframes pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Announcement-bar marquee: track contains two identical halves */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 /* Minimal focus style that stays visible on the neutral palette */
 :focus-visible {
   outline: 1.5px solid var(--color-ink);

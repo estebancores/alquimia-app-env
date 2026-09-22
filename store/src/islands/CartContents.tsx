@@ -3,6 +3,7 @@ import {
   cartItems,
   cartTotal,
   clearCart,
+  FREE_SHIPPING_THRESHOLD,
   removeFromCart,
   setQty,
   whatsappOrderUrl,
@@ -11,6 +12,53 @@ import { formatPrice } from '../lib/format';
 
 interface Props {
   whatsappNumber: string;
+}
+
+/** Progress toward the free-shipping threshold, with a celebration state. */
+function FreeShippingMeter({ total }: { total: number }) {
+  const achieved = total >= FREE_SHIPPING_THRESHOLD;
+  const pct = Math.min(100, (total / FREE_SHIPPING_THRESHOLD) * 100);
+
+  return (
+    <div class="mb-10 border border-sand bg-bone p-5" role="status">
+      <div class="flex items-center gap-3">
+        <span
+          class={`relative flex size-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+            achieved ? 'bg-emerald-700 text-cream' : 'bg-sand text-taupe'
+          }`}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5" aria-hidden="true">
+            <path d="M3 7h11v9H3z" />
+            <path d="M14 10h4l3 3v3h-7" />
+            <circle cx="7" cy="17.5" r="1.5" />
+            <circle cx="17" cy="17.5" r="1.5" />
+          </svg>
+          {achieved && (
+            <span class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-ink text-cream animate-[pop_0.45s_ease-out]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="size-2.5" aria-hidden="true">
+                <path d="M4 12l5 5L20 6" />
+              </svg>
+            </span>
+          )}
+        </span>
+        <p class="text-sm">
+          {achieved ? (
+            <span class="font-medium text-emerald-700">¡Genial! Tu pedido tiene envío gratis.</span>
+          ) : (
+            <>
+              Te faltan <strong class="font-medium">{formatPrice(FREE_SHIPPING_THRESHOLD - total)}</strong> para envío gratis.
+            </>
+          )}
+        </p>
+      </div>
+      <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sand">
+        <div
+          class={`h-full rounded-full transition-[width] duration-500 ease-out ${achieved ? 'bg-emerald-600' : 'bg-ink'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 /** Full cart page: line items, quantity controls, WhatsApp order CTA. */
@@ -33,7 +81,9 @@ export default function CartContents({ whatsappNumber }: Props) {
   }
 
   return (
-    <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
+    <>
+      <FreeShippingMeter total={total} />
+      <div class="grid gap-12 lg:grid-cols-[1fr_320px]">
       <ul class="divide-y divide-sand">
         {items.map((item) => (
           <li key={item.variantId} class="flex gap-5 py-6">
@@ -98,6 +148,12 @@ export default function CartContents({ whatsappNumber }: Props) {
         >
           Pedir por WhatsApp
         </a>
+        <a
+          href="/shop"
+          class="mt-3 block border border-ink px-6 py-4 text-center text-sm tracking-widest uppercase transition-colors hover:bg-ink hover:text-cream"
+        >
+          Seguir comprando
+        </a>
         <button
           type="button"
           onClick={clearCart}
@@ -106,6 +162,7 @@ export default function CartContents({ whatsappNumber }: Props) {
           Vaciar carrito
         </button>
       </aside>
-    </div>
+      </div>
+    </>
   );
 }
