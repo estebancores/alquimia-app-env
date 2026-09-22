@@ -9,6 +9,7 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
+import ColorPicker from 'primevue/colorpicker';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Tag from 'primevue/tag';
@@ -68,6 +69,33 @@ const variants = ref([]);
 const originalVariants = ref([]);
 const selectedVariantIndex = ref(0);
 const selectedVariant = computed(() => variants.value[selectedVariantIndex.value] || null);
+
+// PrimeVue ColorPicker binds a hex string WITHOUT '#'; we store '#rrggbb'.
+const selectedVariantColor = computed({
+  get: () => (selectedVariant.value?.color || '').replace(/^#/, '') || null,
+  set: (val) => {
+    if (!selectedVariant.value) return;
+    selectedVariant.value.color = normalizeHexColor(val);
+  }
+});
+
+function normalizeHexColor(value) {
+  if (!value) return null;
+  const v = String(value).trim().replace(/^#/, '');
+  return /^[0-9a-fA-F]{3,8}$/.test(v) ? `#${v.toLowerCase()}` : null;
+}
+
+const eyeDropperSupported = typeof window !== 'undefined' && 'EyeDropper' in window;
+
+async function pickColorFromScreen() {
+  if (!eyeDropperSupported || !selectedVariant.value) return;
+  try {
+    const { sRGBHex } = await new window.EyeDropper().open();
+    selectedVariant.value.color = normalizeHexColor(sRGBHex);
+  } catch {
+    // User pressed Escape or the picker was cancelled — nothing to apply.
+  }
+}
 
 const images = ref([]);
 const selectedImageId = ref(null);
@@ -192,7 +220,8 @@ function populate(product) {
     sku: variant.sku,
     price: variant.price != null ? Number(variant.price) : null,
     compare_at_price: variant.compare_at_price != null ? Number(variant.compare_at_price) : null,
-    image_id: variant.image_id || null
+    image_id: variant.image_id || null,
+    color: variant.color || null
   }));
   originalVariants.value = JSON.parse(JSON.stringify(variants.value));
   if (selectedVariantIndex.value >= variants.value.length) selectedVariantIndex.value = 0;
@@ -242,7 +271,8 @@ async function save() {
       return (variant.title ?? '') !== (original.title ?? '')
         || Number(variant.price) !== Number(original.price)
         || (variant.compare_at_price ?? null) !== (original.compare_at_price ?? null)
-        || (variant.image_id ?? null) !== (original.image_id ?? null);
+        || (variant.image_id ?? null) !== (original.image_id ?? null)
+        || normalizeHexColor(variant.color) !== (original.color ?? null);
     });
     if (changedVariants.length) {
       payload.variants = changedVariants.map((variant) => ({
@@ -250,7 +280,9 @@ async function save() {
         title: variant.title,
         price: variant.price,
         compare_at_price: variant.compare_at_price,
-        image_id: variant.image_id
+        image_id: variant.image_id,
+        // Invalid hex is sent as-is so the API rejects it with a visible error
+        color: variant.color ? (normalizeHexColor(variant.color) ?? String(variant.color).trim()) : null
       }));
     }
     if (!isNew.value && imagesDirty.value && sortedImages.value.length) {
@@ -703,6 +735,11 @@ onMounted(() => {
                           :class="{ 'variant-chip-active': index === selectedVariantIndex }"
                           @click="selectVariant(index)"
                         >
+                          <span
+                            v-if="variant.color"
+                            class="variant-chip-dot"
+                            :style="{ background: variant.color }"
+                          ></span>
                           <span class="variant-chip-title">{{ variant.title }}</span>
                           <span class="variant-chip-price">{{ formatPrice(variant.price) }}</span>
                         </button>
@@ -716,6 +753,36 @@ onMounted(() => {
                         v-model="selectedVariant.title"
                         placeholder="e.g. 100ml / Blue"
                       />
+                    </div>
+
+                    <div v-if="selectedVariant" class="flex flex-column gap-2">
+                      <label for="p-variant-color" class="text-sm font-semibold">Variant Color</label>
+                      <div class="flex align-items-center gap-3">
+                        <ColorPicker v-model="selectedVariantColor" format="hex" />
+                        <Button
+                          v-if="eyeDropperSupported"
+                          icon="pi pi-palette"
+                          severity="secondary"
+                          outlined
+                          title="Pick a color from anywhere on screen (e.g. the product image)"
+                          aria-label="Pick color from screen"
+                          @click="pickColorFromScreen"
+                        />
+                        <InputText
+                          id="p-variant-color"
+                          v-model="selectedVariant.color"
+                          placeholder="#FF5733"
+                          class="w-8rem"
+                        />
+                        <span
+                          v-if="normalizeHexColor(selectedVariant.color)"
+                          class="variant-color-preview"
+                          :style="{ background: normalizeHexColor(selectedVariant.color) }"
+                        ></span>
+                      </div>
+                      <small class="text-color-secondary">
+                        Pick a color, use the eyedropper to grab it from the product image, or type the HEX value. Leave empty for no color.
+                      </small>
                     </div>
 
                     <div v-if="selectedVariant" class="flex flex-column gap-2">
@@ -1150,6 +1217,22 @@ onMounted(() => {
 .variant-chip-price {
   font-size: 0.72rem;
   color: var(--p-text-muted-color);
+}
+
+.variant-chip-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid var(--p-content-border-color);
+}
+
+.variant-color-preview {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--p-content-border-color);
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .variant-image-options {

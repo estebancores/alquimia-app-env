@@ -8,6 +8,12 @@ class ProductService {
     return '[]';
   }
 
+  normalizeColor(value) {
+    if (!value) return null;
+    const v = String(value).trim();
+    return v ? (v.startsWith('#') ? v : `#${v}`).toLowerCase() : null;
+  }
+
   parseDate(value) {
     if (!value) return null;
     const date = new Date(value);
@@ -250,6 +256,9 @@ class ProductService {
             : variant.compare_at_price,
           position: variantPayload.position !== undefined ? variantPayload.position : variant.position,
           image_id: imageId,
+          color: variantPayload.color !== undefined
+            ? this.normalizeColor(variantPayload.color)
+            : variant.color,
           shopify_updated_at: new Date(),
           updated_at: new Date()
         };

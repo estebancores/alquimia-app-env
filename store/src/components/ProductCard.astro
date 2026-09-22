@@ -15,6 +15,12 @@ const hoverImage = product.images[1] ?? null;
 const compareAt = variant?.compare_at_price ? Number(variant.compare_at_price) : null;
 const price = variant?.price ? Number(variant.price) : null;
 const onSale = compareAt != null && price != null && compareAt > price;
+
+// Color dots: only when the product has real variant options (more than one).
+const coloredVariants = product.variants.filter((v) => v.color);
+const shownColors = coloredVariants.slice(0, 6);
+const extraColors = coloredVariants.length - shownColors.length;
+const showSwatches = product.variants.length > 1 && coloredVariants.length > 0;
 ---
 
 <a href={`/product/${product.handle}`} class="group block" data-astro-prefetch="viewport">
@@ -43,6 +49,18 @@ const onSale = compareAt != null && price != null && compareAt > price;
         {onSale && <s class="mr-2 text-ink">{formatPrice(compareAt)}</s>}
         <span class={onSale ? 'text-red-500' : undefined}>{formatPrice(price)}</span>
       </p>
+    )}
+    {showSwatches && (
+      <div class="flex items-center gap-1.5 pt-0.5">
+        {shownColors.map((v) => (
+          <span
+            class="h-3.5 w-3.5 rounded-full border border-ink/15"
+            style={`background: ${v.color}`}
+            title={v.title}
+          />
+        ))}
+        {extraColors > 0 && <span class="text-xs text-taupe">+{extraColors} más</span>}
+      </div>
     )}
   </div>
 </a>

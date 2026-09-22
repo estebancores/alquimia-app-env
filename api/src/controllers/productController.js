@@ -42,6 +42,7 @@ const updateValidators = [
   body('variants.*.price').optional({ values: 'null' }).isDecimal(),
   body('variants.*.compare_at_price').optional({ values: 'null' }).isDecimal(),
   body('variants.*.image_id').optional({ values: 'null' }).isUUID(),
+  body('variants.*.color').optional({ values: 'falsy' }).trim().isHexColor(),
   body('variants.*.position').optional().isInt(),
   body('images').optional().isArray(),
   body('images.*.id').notEmpty().isUUID(),

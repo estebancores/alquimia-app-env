@@ -2,9 +2,9 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import ProductImage from '../../components/ProductImage.astro';
 import ApiErrorNotice from '../../components/ApiErrorNotice.astro';
 import AddToCart from '../../islands/AddToCart';
+import ProductGallery from '../../islands/ProductGallery';
 import { getProductBySlug, getRelatedProducts, ApiError } from '../../lib/api';
 import { breadcrumbJsonLd, productJsonLd, type Crumb } from '../../lib/jsonld';
 import { imageUrl, slugify, stripHtml } from '../../lib/format';
@@ -59,25 +59,12 @@ const mainImage = product?.images[0] ?? null;
         <Breadcrumbs crumbs={crumbs} />
 
         <article class="mt-8 grid gap-12 lg:grid-cols-[3fr_2fr]">
-          <div class="grid grid-cols-1 gap-gutter sm:grid-cols-2">
-            {product.images.length ? (
-              product.images.map((image, i) => (
-                <div class={`aspect-[4/5] overflow-hidden bg-bone ${i === 0 ? 'sm:col-span-2' : ''}`}>
-                  <ProductImage
-                    image={image}
-                    alt={image.alt ?? `${product!.title} — imagen ${i + 1}`}
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    widths={i === 0 ? [480, 768, 1024, 1440] : [320, 480, 640]}
-                    sizes={i === 0 ? '(min-width: 1024px) 60vw, 100vw' : '(min-width: 1024px) 30vw, 50vw'}
-                  />
-                </div>
-              ))
-            ) : (
-              <div class="aspect-[4/5] sm:col-span-2">
-                <ProductImage image={null} alt={product.title} />
-              </div>
-            )}
-          </div>
+          <ProductGallery
+            client:idle
+            images={product.images}
+            variants={product.variants}
+            title={product.title}
+          />
 
           <div class="lg:sticky lg:top-28 lg:h-fit">
             {product.vendor && (

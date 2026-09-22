@@ -27,6 +27,8 @@ export interface ProductVariant {
   option2: string | null;
   option3: string | null;
   image_id?: string | null;
+  /** Hex color set in admin (e.g. "#ff5733"); null when the variant has no color. */
+  color?: string | null;
 }
 
 export interface Product {

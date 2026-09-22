@@ -1,0 +1,29 @@
+---
+import { Image } from 'astro:assets';
+import type { LocalMedia } from '../lib/categoryMedia';
+import type { ProductImage as ProductImageType } from '../lib/types';
+import ProductImage from './ProductImage.astro';
+
+interface Props {
+  /** Local asset resolved via localMediaFor(); falls back to the API image. */
+  media: LocalMedia | null;
+  image: ProductImageType | null | undefined;
+  alt: string;
+  sizes: string;
+  widths?: number[];
+  class?: string;
+}
+
+const { media, image, alt, sizes, widths, class: className = 'h-full w-full object-cover' } = Astro.props;
+---
+
+{media?.kind === 'video' ? (
+  <video src={media.src} autoplay muted loop playsinline preload="metadata" class={className} />
+) : media?.kind === 'gif' ? (
+  // Plain <img> on purpose: astro:assets would flatten the animation.
+  <img src={media.src} alt={alt} loading="lazy" decoding="async" class={className} />
+) : media ? (
+  <Image src={media.src} alt={alt} sizes={sizes} widths={widths} class={className} />
+) : (
+  <ProductImage image={image} alt={alt} sizes={sizes} widths={widths} class={className} />
+)}

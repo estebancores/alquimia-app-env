@@ -1,6 +1,8 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
+import { useStore } from '@nanostores/preact';
 import type { Product } from '../lib/types';
 import { addToCart } from '../stores/cart';
+import { selectedVariantId } from '../stores/variant';
 import { formatPrice, imageUrl } from '../lib/format';
 
 interface Props {
@@ -10,10 +12,17 @@ interface Props {
 /** Variant (size) selector + add-to-cart button for the product page. */
 export default function AddToCart({ product }: Props) {
   const variants = product.variants.filter((v) => v.price != null);
-  const [selectedId, setSelectedId] = useState(variants[0]?.id ?? null);
+  const selectedId = useStore(selectedVariantId);
   const [added, setAdded] = useState(false);
 
-  const selected = variants.find((v) => v.id === selectedId) ?? null;
+  // Sync the shared atom with this product (it may hold a stale id after navigation).
+  useEffect(() => {
+    if (!variants.some((v) => v.id === selectedVariantId.get())) {
+      selectedVariantId.set(variants[0]?.id ?? null);
+    }
+  }, []);
+
+  const selected = variants.find((v) => v.id === selectedId) ?? variants[0] ?? null;
   const hasRealVariants = variants.length > 1 || (variants[0] && variants[0].title !== 'Default Title');
 
   const handleAdd = () => {
@@ -41,24 +50,46 @@ export default function AddToCart({ product }: Props) {
     <div class="space-y-6">
       {hasRealVariants && (
         <fieldset>
-          <legend class="mb-3 text-xs tracking-widest text-taupe uppercase">Opción</legend>
-          <div class="flex flex-wrap gap-2">
-            {variants.map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                onClick={() => setSelectedId(variant.id)}
-                aria-pressed={variant.id === selectedId}
-                class={`min-w-12 border px-4 py-2 text-sm transition-colors ${
-                  variant.id === selectedId
-                    ? 'border-ink bg-ink text-cream'
-                    : 'border-sand hover:border-ink'
-                }`}
-              >
-                {variant.title}
-              </button>
-            ))}
+          <legend class="mb-3 text-xs tracking-widest text-taupe uppercase">
+            {variants.some((v) => v.color) ? 'Color' : 'Opción'}
+          </legend>
+          <div class="flex flex-wrap items-center gap-2.5">
+            {variants.map((variant) =>
+              variant.color ? (
+                <button
+                  key={variant.id}
+                  type="button"
+                  onClick={() => selectedVariantId.set(variant.id)}
+                  aria-pressed={variant.id === selectedId}
+                  aria-label={variant.title}
+                  title={variant.title}
+                  class={`h-9 w-9 rounded-full border border-ink/15 transition-all ${
+                    variant.id === selectedId
+                      ? 'ring-2 ring-ink ring-offset-2 ring-offset-cream'
+                      : 'hover:scale-110'
+                  }`}
+                  style={{ background: variant.color }}
+                />
+              ) : (
+                <button
+                  key={variant.id}
+                  type="button"
+                  onClick={() => selectedVariantId.set(variant.id)}
+                  aria-pressed={variant.id === selectedId}
+                  class={`min-w-12 border px-4 py-2 text-sm transition-colors ${
+                    variant.id === selectedId
+                      ? 'border-ink bg-ink text-cream'
+                      : 'border-sand hover:border-ink'
+                  }`}
+                >
+                  {variant.title}
+                </button>
+              ),
+            )}
           </div>
+          {selected && variants.some((v) => v.color) && (
+            <p class="mt-3 text-sm text-taupe">{selected.title}</p>
+          )}
         </fieldset>
       )}
 
