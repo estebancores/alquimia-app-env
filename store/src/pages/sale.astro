@@ -1,30 +1,25 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Breadcrumbs from '../components/Breadcrumbs.astro';
-import CategoryGrid from '../components/CategoryGrid.astro';
 import ProductCard from '../components/ProductCard.astro';
 import Pagination from '../components/Pagination.astro';
 import ApiErrorNotice from '../components/ApiErrorNotice.astro';
 import FilterBar from '../islands/FilterBar';
-import { getCategories } from '../lib/api';
 import { listingCanonical, loadListing, type ListingData } from '../lib/listing';
 import { breadcrumbJsonLd, collectionPageJsonLd, itemListJsonLd } from '../lib/jsonld';
-import { slugify } from '../lib/format';
-import type { Category } from '../lib/types';
 
 const siteUrl = (Astro.site ?? new URL(Astro.url.origin)).href.replace(/\/$/, '');
 
 let listing: ListingData | null = null;
-let categories: Category[] = [];
 try {
-  [listing, categories] = await Promise.all([loadListing(Astro.url), getCategories(8)]);
+  listing = await loadListing(Astro.url, undefined, { onSale: true });
 } catch {
   listing = null;
 }
 
 const crumbs = [
   { name: 'Inicio', href: '/' },
-  { name: 'Toda la tienda', href: '/shop' },
+  { name: 'Descuentos', href: '/sale' },
 ];
 
 const page = listing?.state.page ?? 1;
@@ -32,24 +27,22 @@ const hasFilters = Boolean(
   listing && (listing.state.vendor || listing.state.priceKey || listing.state.search || listing.state.sort !== 'newest'),
 );
 
-const title = listing?.state.search
-  ? `Resultados para “${listing.state.search}”`
-  : 'Toda la tienda';
+const title = 'Descuentos';
 ---
 
 <BaseLayout
   title={page > 1 ? `${title} — Página ${page}` : title}
-  description="Explora todos los productos Alquimia: cuidado personal y belleza. Filtra por categoría, marca y precio."
-  canonical={listingCanonical('/shop', page)}
+  description="Productos en oferta en Alquimia: cuidado personal y belleza con descuento. Filtra por marca y precio."
+  canonical={listingCanonical('/sale', page)}
   noindex={hasFilters}
-  prevUrl={page > 1 ? listingCanonical('/shop', page - 1) : null}
-  nextUrl={listing && page < listing.result.totalPages ? listingCanonical('/shop', page + 1) : null}
+  prevUrl={page > 1 ? listingCanonical('/sale', page - 1) : null}
+  nextUrl={listing && page < listing.result.totalPages ? listingCanonical('/sale', page + 1) : null}
   jsonLd={
     listing
       ? [
-          collectionPageJsonLd(siteUrl, { name: title, path: '/shop' }),
+          collectionPageJsonLd(siteUrl, { name: title, path: '/sale' }),
           breadcrumbJsonLd(siteUrl, crumbs),
-          itemListJsonLd(siteUrl, listing.result.products, '/shop'),
+          itemListJsonLd(siteUrl, listing.result.products, '/sale'),
         ]
       : []
   }
@@ -60,11 +53,7 @@ const title = listing?.state.search
 
     {listing ? (
       <>
-        <div class="mt-8">
-          <CategoryGrid categories={categories} variant="strip" activeSlug="shop" />
-        </div>
-
-        <div class="sticky top-10.5 z-10 -mx-gutter mt-6 border-y border-sand bg-cream px-gutter py-3">
+        <div class="sticky top-10.5 z-10 -mx-gutter mt-8 border-y border-sand bg-cream px-gutter py-3">
           <FilterBar
             client:visible
             meta={listing.meta}
@@ -72,9 +61,8 @@ const title = listing?.state.search
               vendor: listing.state.vendor,
               priceKey: listing.state.priceKey,
               sort: listing.state.sort,
-              search: listing.state.search,
             }}
-            productTypes={listing.meta.product_types.filter(Boolean).map((name) => ({ name, slug: slugify(name) }))}
+            showProductType={false}
           />
         </div>
 
@@ -89,13 +77,13 @@ const title = listing?.state.search
             ))}
           </div>
         ) : (
-          <p class="py-20 text-center text-taupe">No encontramos productos con esos filtros.</p>
+          <p class="py-20 text-center text-taupe">No hay productos en oferta por ahora.</p>
         )}
 
         <Pagination
           page={page}
           totalPages={listing.result.totalPages}
-          basePath="/shop"
+          basePath="/sale"
           params={listing.paginationParams}
         />
       </>

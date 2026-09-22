@@ -8,13 +8,18 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import SEO from '../components/SEO.astro';
+import { THEME_COLOR } from '../lib/site';
 
 interface Props {
   title: string;
   description: string;
   canonical?: string;
   ogImage?: string | null;
+  ogImageAlt?: string | null;
+  ogImageWidth?: number | null;
+  ogImageHeight?: number | null;
   ogType?: 'website' | 'product' | 'article';
+  price?: number | null;
   jsonLd?: object[];
   noindex?: boolean;
   prevUrl?: string | null;
@@ -33,7 +38,10 @@ Astro.response.headers.set('Cache-Control', cacheControl);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content={THEME_COLOR} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preconnect" href="https://cdn.shopify.com" crossorigin />
     <SEO {...seo} />
     <ClientRouter />
   </head>

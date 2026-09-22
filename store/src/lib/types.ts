@@ -84,6 +84,7 @@ export interface ProductListParams {
   productType?: string;
   minPrice?: number;
   maxPrice?: number;
+  onSale?: boolean;
 }
 
 export interface ProductListResult {

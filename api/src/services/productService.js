@@ -42,6 +42,16 @@ class ProductService {
           });
       });
     }
+    if (filters.on_sale === true || filters.on_sale === 'true') {
+      query.whereExists(function () {
+        this.select(db.raw('1'))
+          .from('product_variants')
+          .whereRaw('product_variants.product_id = products.id')
+          .whereNotNull('product_variants.compare_at_price')
+          .whereNotNull('product_variants.price')
+          .whereRaw('product_variants.compare_at_price > product_variants.price');
+      });
+    }
     if (filters.search) {
       const term = `%${filters.search}%`;
       query.where(function () {

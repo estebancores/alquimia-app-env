@@ -12,7 +12,8 @@ const listValidators = [
   query('status').optional().trim(),
   query('public').optional().isBoolean(),
   query('min_price').optional().isDecimal(),
-  query('max_price').optional().isDecimal()
+  query('max_price').optional().isDecimal(),
+  query('on_sale').optional().isBoolean()
 ];
 
 const createValidators = [
@@ -75,7 +76,8 @@ async function list(req, res, next) {
       public: req.query.public,
       search: req.query.search,
       min_price: req.query.min_price != null ? Number(req.query.min_price) : null,
-      max_price: req.query.max_price != null ? Number(req.query.max_price) : null
+      max_price: req.query.max_price != null ? Number(req.query.max_price) : null,
+      on_sale: req.query.on_sale
     };
 
     const options = {

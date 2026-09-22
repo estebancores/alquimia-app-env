@@ -8,7 +8,7 @@ import ApiErrorNotice from '../../components/ApiErrorNotice.astro';
 import FilterBar from '../../islands/FilterBar';
 import { getCategories, resolveCategorySlug, ApiError } from '../../lib/api';
 import { listingCanonical, loadListing, type ListingData } from '../../lib/listing';
-import { breadcrumbJsonLd, itemListJsonLd } from '../../lib/jsonld';
+import { breadcrumbJsonLd, collectionPageJsonLd, itemListJsonLd } from '../../lib/jsonld';
 import { slugify } from '../../lib/format';
 import type { Category } from '../../lib/types';
 
@@ -58,7 +58,11 @@ const hasFilters = Boolean(
   nextUrl={listing && page < listing.result.totalPages ? listingCanonical(basePath, page + 1) : null}
   jsonLd={
     listing
-      ? [breadcrumbJsonLd(siteUrl, crumbs), itemListJsonLd(siteUrl, listing.result.products, basePath)]
+      ? [
+          collectionPageJsonLd(siteUrl, { name: productType ?? '', path: basePath }),
+          breadcrumbJsonLd(siteUrl, crumbs),
+          itemListJsonLd(siteUrl, listing.result.products, basePath),
+        ]
       : []
   }
 >

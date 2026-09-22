@@ -5,7 +5,7 @@ import CategoryGrid from '../components/CategoryGrid.astro';
 import ProductCard from '../components/ProductCard.astro';
 import ApiErrorNotice from '../components/ApiErrorNotice.astro';
 import { getCategories, getNewArrivals } from '../lib/api';
-import { organizationJsonLd, itemListJsonLd } from '../lib/jsonld';
+import { organizationJsonLd, websiteJsonLd, itemListJsonLd } from '../lib/jsonld';
 import { imageUrl } from '../lib/format';
 import type { Category, Product } from '../lib/types';
 
@@ -25,6 +25,7 @@ const heroVideo = import.meta.env.PUBLIC_HERO_VIDEO_URL || null;
 
 const jsonLd = [
   organizationJsonLd(siteUrl),
+  websiteJsonLd(siteUrl),
   ...(arrivals.length ? [itemListJsonLd(siteUrl, arrivals, '/')] : []),
 ];
 ---

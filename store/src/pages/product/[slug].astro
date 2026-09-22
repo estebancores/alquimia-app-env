@@ -7,7 +7,7 @@ import AddToCart from '../../islands/AddToCart';
 import ProductGallery from '../../islands/ProductGallery';
 import { getProductBySlug, getRelatedProducts, ApiError } from '../../lib/api';
 import { breadcrumbJsonLd, productJsonLd, type Crumb } from '../../lib/jsonld';
-import { imageUrl, slugify, stripHtml } from '../../lib/format';
+import { imageUrl, minPriceVariant, slugify, stripHtml } from '../../lib/format';
 import type { Product } from '../../lib/types';
 
 const siteUrl = (Astro.site ?? new URL(Astro.url.origin)).href.replace(/\/$/, '');
@@ -42,6 +42,7 @@ const description = product
   ? stripHtml(product.body_html) || `${product.title} — disponible en Alquimia.`
   : '';
 const mainImage = product?.images[0] ?? null;
+const price = product ? minPriceVariant(product)?.price : null;
 ---
 
 <BaseLayout
@@ -50,6 +51,10 @@ const mainImage = product?.images[0] ?? null;
   canonical={product ? `/product/${product.handle}` : undefined}
   ogType="product"
   ogImage={imageUrl(mainImage)}
+  ogImageAlt={mainImage?.alt ?? product?.title}
+  ogImageWidth={mainImage?.width}
+  ogImageHeight={mainImage?.height}
+  price={price != null ? Number(price) : null}
   jsonLd={product ? [breadcrumbJsonLd(siteUrl, crumbs), productJsonLd(siteUrl, product)] : []}
   cacheControl="public, max-age=0, s-maxage=600, stale-while-revalidate=1800"
 >

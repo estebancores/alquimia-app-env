@@ -170,7 +170,8 @@ npm run build   # production build; npm start serves dist/server/entry.mjs
 ### Key facts
 
 - Fully SSR (`output: 'server'`); caching via in-memory TTL in `src/lib/api.ts` + `Cache-Control` headers set in `BaseLayout.astro`.
-- Routes: `/` (home), `/shop` (all products + `?search=`), `/[category]` (slugified `product_type`), `/product/[slug]` (product `handle`), `/cart`, dynamic `sitemap.xml` and `robots.txt`.
+- Routes: `/` (home), `/shop` (all products + `?search=`), `/[category]` (slugified `product_type`), `/product/[slug]` (product `handle`), `/cart`, dynamic `sitemap.xml` (with image extensions) and `robots.txt` (explicit AI-crawler rules), `llms.txt` + `llms-full.txt` (LLM-readable catalog).
+- SEO lives in `src/components/SEO.astro` (meta/OG/Twitter/geo/hreflang) and `src/lib/jsonld.ts` (Organization+OnlineStore, WebSite+SearchAction, BreadcrumbList, Product, CollectionPage, ItemList). Site identity/geo/social config is centralized in `src/lib/site.ts` and env-overridable (`PUBLIC_GEO_*`, `PUBLIC_SOCIAL_URLS`, `PUBLIC_TWITTER_HANDLE`).
 - Storefront only shows `public=true` products (scraped products keep `status='draft'`, so status is not filtered).
 - Product-by-slug uses `GET /products?search=<handle>` + exact handle match (API has no by-handle endpoint).
 - Stored `r2_url` values point to the private `*.r2.cloudflarestorage.com` endpoint; `imageUrl()` in `src/lib/format.ts` falls back to `original_src` (Shopify CDN).

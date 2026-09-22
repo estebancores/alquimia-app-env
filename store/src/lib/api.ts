@@ -78,6 +78,7 @@ export async function getProducts(params: ProductListParams = {}): Promise<Produ
   if (params.productType) qs.set('product_type', params.productType);
   if (params.minPrice != null) qs.set('min_price', String(params.minPrice));
   if (params.maxPrice != null) qs.set('max_price', String(params.maxPrice));
+  if (params.onSale) qs.set('on_sale', 'true');
 
   const raw = await fetchJson<RawListResponse>(`/products?${qs.toString()}`);
   const { data: products, pagination } = raw;

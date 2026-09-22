@@ -34,7 +34,11 @@ export function parseListingState(url: URL): ListingState {
  * param, so price sorting is applied to the current page server-side (a
  * documented limitation until the API grows a `sort` query param).
  */
-export async function loadListing(url: URL, productType?: string): Promise<ListingData> {
+export async function loadListing(
+  url: URL,
+  productType?: string,
+  options: { onSale?: boolean } = {},
+): Promise<ListingData> {
   const state = parseListingState(url);
   const meta = await getFilterMeta();
 
@@ -50,6 +54,7 @@ export async function loadListing(url: URL, productType?: string): Promise<Listi
     productType,
     minPrice: range?.min ?? undefined,
     maxPrice: range?.max ?? undefined,
+    onSale: options.onSale,
   });
 
   if (state.sort !== 'newest') {

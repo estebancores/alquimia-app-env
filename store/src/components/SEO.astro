@@ -1,11 +1,26 @@
 ---
+import {
+  SITE_NAME,
+  SITE_LOCALE,
+  SITE_LANGUAGE,
+  GEO_REGION,
+  GEO_PLACENAME,
+  GEO_POSITION,
+  TWITTER_HANDLE,
+} from '../lib/site';
+
 interface Props {
   title: string;
   description: string;
   /** Canonical path (e.g. "/product/foo") or full URL. Defaults to current URL. */
   canonical?: string;
   ogImage?: string | null;
+  ogImageAlt?: string | null;
+  ogImageWidth?: number | null;
+  ogImageHeight?: number | null;
   ogType?: 'website' | 'product' | 'article';
+  /** Product price in SITE_CURRENCY — emitted as product:price:* OG tags. */
+  price?: number | null;
   /** JSON-LD objects to inject as <script type="application/ld+json"> */
   jsonLd?: object[];
   noindex?: boolean;
@@ -18,7 +33,11 @@ const {
   description,
   canonical,
   ogImage,
+  ogImageAlt,
+  ogImageWidth,
+  ogImageHeight,
   ogType = 'website',
+  price = null,
   jsonLd = [],
   noindex = false,
   prevUrl = null,
@@ -28,26 +47,52 @@ const {
 const site = Astro.site ?? new URL(Astro.url.origin);
 const canonicalUrl = canonical ? new URL(canonical, site).href : new URL(Astro.url.pathname + Astro.url.search, site).href;
 const fullTitle = title.includes('Alquimia') ? title : `${title} | Alquimia`;
+const imageAlt = ogImageAlt ?? title;
+const robots = noindex
+  ? 'noindex, follow'
+  : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 ---
 
 <title>{fullTitle}</title>
 <meta name="description" content={description} />
+<meta name="author" content={SITE_NAME} />
+<meta name="robots" content={robots} />
 <link rel="canonical" href={canonicalUrl} />
-{noindex && <meta name="robots" content="noindex, follow" />}
+<link rel="alternate" hreflang={SITE_LANGUAGE} href={canonicalUrl} />
+<link rel="alternate" hreflang="x-default" href={canonicalUrl} />
 {prevUrl && <link rel="prev" href={new URL(prevUrl, site).href} />}
 {nextUrl && <link rel="next" href={new URL(nextUrl, site).href} />}
 
-<meta property="og:site_name" content="Alquimia" />
+<meta name="geo.region" content={GEO_REGION} />
+<meta name="geo.placename" content={GEO_PLACENAME} />
+{GEO_POSITION && <meta name="geo.position" content={GEO_POSITION} />}
+{GEO_POSITION && <meta name="ICBM" content={GEO_POSITION.replace(';', ', ')} />}
+
+<meta property="og:site_name" content={SITE_NAME} />
+<meta property="og:locale" content={SITE_LOCALE} />
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:type" content={ogType} />
 <meta property="og:url" content={canonicalUrl} />
 {ogImage && <meta property="og:image" content={ogImage} />}
+{ogImage && <meta property="og:image:alt" content={imageAlt} />}
+{ogImage && ogImageWidth && <meta property="og:image:width" content={String(ogImageWidth)} />}
+{ogImage && ogImageHeight && <meta property="og:image:height" content={String(ogImageHeight)} />}
+{ogType === 'product' && price != null && (
+  <>
+    <meta property="product:price:amount" content={String(price)} />
+    <meta property="product:price:currency" content="COP" />
+    <meta property="product:availability" content="in stock" />
+    <meta property="product:condition" content="new" />
+  </>
+)}
 
 <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+{TWITTER_HANDLE && <meta name="twitter:site" content={TWITTER_HANDLE} />}
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 {ogImage && <meta name="twitter:image" content={ogImage} />}
+{ogImage && <meta name="twitter:image:alt" content={imageAlt} />}
 
 {jsonLd.map((schema) => (
   <script type="application/ld+json" set:html={JSON.stringify(schema)} />
