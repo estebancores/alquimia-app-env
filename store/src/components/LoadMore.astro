@@ -1,0 +1,57 @@
+---
+interface Props {
+  /** Current depth: how many pages are rendered (1-based). */
+  page: number;
+  totalPages: number;
+  /** Products currently rendered. */
+  shown: number;
+  /** Total matching products. */
+  total: number;
+  /** Base path, e.g. "/shop" or "/bolsos" */
+  basePath: string;
+  /** Extra query params (filters/search) preserved across pages */
+  params?: URLSearchParams;
+}
+
+const { page, totalPages, shown, total, basePath, params } = Astro.props;
+
+const hasMore = page < totalPages;
+
+const qs = new URLSearchParams(params);
+qs.set('page', String(page + 1));
+const nextUrl = `${basePath}?${qs.toString()}`;
+---
+
+{shown > 0 && (
+  <div class="mt-14 flex flex-col items-center gap-4 text-center">
+    <p class="text-xs tracking-wide text-stone" aria-live="polite">
+      Estás viendo {shown} productos de {total}
+    </p>
+    {hasMore && (
+      <a
+        href={nextUrl}
+        rel="next"
+        data-keep-scroll
+        class="border border-ink px-8 py-3 text-sm tracking-widest uppercase transition-colors hover:bg-ink hover:text-cream"
+      >
+        Cargar más productos
+      </a>
+    )}
+  </div>
+)}
+
+<script>
+  // ClientRouter resets scroll to top on every navigation. For "load more"
+  // clicks we restore the pre-click position after the DOM swap, so the
+  // viewport doesn't move when the next chunk is appended.
+  let keepScrollY: number | null = null;
+  document.addEventListener('click', (e) => {
+    keepScrollY = (e.target as Element).closest('[data-keep-scroll]') ? window.scrollY : null;
+  });
+  document.addEventListener('astro:after-swap', () => {
+    if (keepScrollY != null) {
+      scrollTo({ top: keepScrollY, behavior: 'instant' });
+      keepScrollY = null;
+    }
+  });
+</script>

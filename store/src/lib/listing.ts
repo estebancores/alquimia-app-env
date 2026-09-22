@@ -29,10 +29,15 @@ export function parseListingState(url: URL): ListingState {
   };
 }
 
+/** Products loaded per "Cargar más" step. */
+export const LISTING_PAGE_SIZE = 24;
+
 /**
- * Fetch a listing page. The API orders by created_at desc and has no sort
- * param, so price sorting is applied to the current page server-side (a
- * documented limitation until the API grows a `sort` query param).
+ * Fetch a listing. `?page=N` is cumulative ("load more" pattern): the page
+ * renders products from pages 1..N. Each underlying page request is cached,
+ * so clicking deeper only fetches the newest page. The API orders by
+ * created_at desc and has no sort param, so price sorting is applied to the
+ * loaded products server-side (until the API grows a `sort` query param).
  */
 export async function loadListing(
   url: URL,
@@ -46,16 +51,27 @@ export async function loadListing(
     ? meta.price.ranges.find((r) => r.key === state.priceKey)
     : undefined;
 
-  const result = await getProducts({
-    page: state.page,
-    limit: 24,
-    search: state.search,
-    vendor: state.vendor,
-    productType,
-    minPrice: range?.min ?? undefined,
-    maxPrice: range?.max ?? undefined,
-    onSale: options.onSale,
-  });
+  const pageResults = await Promise.all(
+    Array.from({ length: state.page }, (_, i) =>
+      getProducts({
+        page: i + 1,
+        limit: LISTING_PAGE_SIZE,
+        search: state.search,
+        vendor: state.vendor,
+        productType,
+        minPrice: range?.min ?? undefined,
+        maxPrice: range?.max ?? undefined,
+        onSale: options.onSale,
+      }),
+    ),
+  );
+
+  // state.page >= 1 (parseListingState), so pageResults is never empty.
+  const result: ProductListResult = {
+    products: pageResults.flatMap((r) => r.products),
+    pagination: pageResults[0]!.pagination,
+    totalPages: pageResults[0]!.totalPages,
+  };
 
   if (state.sort !== 'newest') {
     const dir = state.sort === 'price_asc' ? 1 : -1;

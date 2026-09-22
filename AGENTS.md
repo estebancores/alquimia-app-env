@@ -186,6 +186,7 @@ npm run build   # production build; npm start serves dist/server/entry.mjs
 - SEO lives in `src/components/SEO.astro` (meta/OG/Twitter/geo/hreflang) and `src/lib/jsonld.ts` (Organization+OnlineStore, WebSite+SearchAction, BreadcrumbList, Product, CollectionPage, ItemList). Site identity/geo/social config is centralized in `src/lib/site.ts` and env-overridable (`PUBLIC_GEO_*`, `PUBLIC_SOCIAL_URLS`, `PUBLIC_TWITTER_HANDLE`).
 - Storefront only shows `public=true` products (scraped products keep `status='draft'`, so status is not filtered).
 - Product-by-slug uses `GET /products?search=<handle>` + exact handle match (API has no by-handle endpoint).
+- Listings use cumulative "load more": `?page=N` renders pages 1..N (each page request cached separately, so deeper pages only fetch the newest chunk). `LoadMore.astro` renders the counter + button; its `data-keep-scroll` link + `astro:after-swap` handler restores scrollY so the viewport doesn't move when products append.
 - Stored `r2_url` values point to the private `*.r2.cloudflarestorage.com` endpoint; `imageUrl()` in `src/lib/format.ts` falls back to `original_src` (Shopify CDN).
 - Cart is client-only (nanostores + localStorage) and checkout generates a WhatsApp order link.
 - Client JS budget: only Preact islands (`src/islands/`) — keep static components in `src/components/`.
