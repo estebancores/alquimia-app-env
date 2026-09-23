@@ -116,9 +116,10 @@ export async function getProducts(params: ProductListParams = {}): Promise<Produ
   };
 }
 
-/** Filter metadata (vendors, product types, price ranges). Cached longer. */
+/** Filter metadata (vendors, product types, price ranges). Cached longer.
+ *  public=true scopes facets to storefront-visible products. */
 export async function getFilterMeta(): Promise<FilterMeta> {
-  const raw = await fetchJson<{ data: FilterMeta }>('/products/meta', 5 * 60_000);
+  const raw = await fetchJson<{ data: FilterMeta }>('/products/meta?public=true', 5 * 60_000);
   return raw.data;
 }
 

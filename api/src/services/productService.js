@@ -101,17 +101,24 @@ class ProductService {
     };
   }
 
-  async getFilterMeta() {
+  // publicOnly=true scopes every facet to storefront-visible products — used
+  // by the store/ app so hidden products don't leak into nav, filters, or counts.
+  async getFilterMeta(publicOnly = false) {
     const priceRanges = [
       { key: 'lt_50k', label: 'Below $50,000', min: null, max: 50000 },
       { key: '50k_100k', label: '$50,000 - $100,000', min: 50000, max: 100000 },
       { key: '100k_150k', label: '$100,000 - $150,000', min: 100000, max: 150000 },
       { key: '150k_200k', label: '$150,000 - $200,000', min: 150000, max: 200000 },
-      { key: 'gte_200k', label: 'Above $200,000', min: 200000, max: null }
+      { key: 'gte_200k', label: 'Arriba de $200,000', min: 200000, max: null }
     ];
+
+    const onlyPublic = (q) => {
+      if (publicOnly) q.where('public', true);
+    };
 
     const countInRange = ({ min, max }) =>
       db('products')
+        .modify(onlyPublic)
         .whereExists(function () {
           this.select(db.raw('1'))
             .from('product_variants')
@@ -125,18 +132,26 @@ class ProductService {
         .first();
 
     const [vendors, productTypes, sourceDomains, statuses, priceBounds, rangeCounts, thumbnails] = await Promise.all([
-      db('products').distinct('vendor').whereNotNull('vendor').orderBy('vendor'),
-      db('products').distinct('product_type').whereNotNull('product_type').orderBy('product_type'),
-      db('products').distinct('source_domain').whereNotNull('source_domain').orderBy('source_domain'),
-      db('products').distinct('status').whereNotNull('status').orderBy('status'),
-      db('product_variants').min('price as min').max('price as max').first(),
+      db('products').distinct('vendor').whereNotNull('vendor').modify(onlyPublic).orderBy('vendor'),
+      db('products').distinct('product_type').whereNotNull('product_type').modify(onlyPublic).orderBy('product_type'),
+      db('products').distinct('source_domain').whereNotNull('source_domain').modify(onlyPublic).orderBy('source_domain'),
+      db('products').distinct('status').whereNotNull('status').modify(onlyPublic).orderBy('status'),
+      db('product_variants')
+        .modify((q) => {
+          if (publicOnly) {
+            q.join('products', 'products.id', 'product_variants.product_id').where('products.public', true);
+          }
+        })
+        .min('price as min').max('price as max').first(),
       Promise.all(priceRanges.map(countInRange)),
       // First image (lowest position) of the newest public product per type —
       // lets the storefront render category tiles without N+1 product queries.
       db('products as p')
         .join('product_images as pi', 'pi.product_id', 'p.id')
         .whereNotNull('p.product_type')
-        .where('p.public', true)
+        .modify((q) => {
+          if (publicOnly) q.where('p.public', true);
+        })
         .distinctOn('p.product_type')
         .select('p.product_type', 'pi.*')
         .orderBy('p.product_type')

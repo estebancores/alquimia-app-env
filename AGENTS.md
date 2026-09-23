@@ -90,8 +90,15 @@ checks these tombstones so re-scraping a domain does not resurrect merged duplic
 merge candidates; it is used by the admin "Merge duplicate products" section.
 
 `GET /products/meta` returns filter metadata plus `categories`: `[{ name, image }]` —
-a representative image (first image of the newest public product) per `product_type`,
-so the storefront builds category tiles with a single request.
+a representative image (first image of the newest product) per `product_type`,
+so the storefront builds category tiles with a single request. Pass `?public=true`
+(the store always does) to scope every facet — vendors, product_types, statuses,
+price bounds/counts, thumbnails — to storefront-visible products; omit it for
+unfiltered data (the admin uses the unfiltered variant).
+
+`GET /products?public=true|false` filters by the `products.public` flag, which is
+the store-visibility switch: the product editor has a Visible/Hidden toggle and the
+products list has a Visibility filter, a "Hidden" badge, and a per-card eye toggle.
 
 ### Rate limiting
 

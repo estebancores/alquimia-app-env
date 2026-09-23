@@ -94,7 +94,7 @@ async function list(req, res, next) {
 
 async function meta(req, res, next) {
   try {
-    const result = await productService.getFilterMeta();
+    const result = await productService.getFilterMeta(req.query.public === 'true');
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
