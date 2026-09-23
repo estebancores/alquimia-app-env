@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import api from '@/services/api';
 
 export const useOrderStore = defineStore('order', {
   state: () => ({
@@ -6,28 +7,38 @@ export const useOrderStore = defineStore('order', {
     loading: false
   }),
 
-  getters: {
-    pendingDeliveries: (state) => state.orders.filter((o) => o.status !== 'delivered')
-  },
-
   actions: {
     async fetchOrders() {
       this.loading = true;
       try {
-        // TODO: connect to backend orders endpoint when available
-        this.orders = [
-          { id: 1, customer: 'Demo Customer', status: 'pending', total: 120, deliveryDate: null },
-          { id: 2, customer: 'Demo Customer 2', status: 'shipped', total: 85, deliveryDate: '2026-09-20' }
-        ];
+        const { data } = await api.get('/orders', { params: { limit: 100 } });
+        this.orders = data.data;
       } finally {
         this.loading = false;
       }
     },
 
-    async updateDelivery(orderId, deliveryInfo) {
+    async updateOrder(orderId, payload) {
+      const { data } = await api.put(`/orders/${orderId}`, payload);
       const index = this.orders.findIndex((o) => o.id === orderId);
       if (index !== -1) {
-        this.orders[index] = { ...this.orders[index], ...deliveryInfo };
+        this.orders[index] = { ...this.orders[index], ...data.data };
+      }
+    },
+
+    async updateDelivery(orderId, deliveryInfo) {
+      const { data } = await api.put(`/orders/${orderId}/delivery`, {
+        delivery_date: deliveryInfo.deliveryDate || null,
+        status: deliveryInfo.status
+      });
+      const index = this.orders.findIndex((o) => o.id === orderId);
+      if (index !== -1) {
+        this.orders[index] = {
+          ...this.orders[index],
+          delivery_id: data.data.id,
+          delivery_status: data.data.status,
+          delivery_date: data.data.delivery_date
+        };
       }
     }
   }

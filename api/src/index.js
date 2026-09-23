@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const imageRoutes = require('./routes/images');
 const logRoutes = require('./routes/logs');
+const orderRoutes = require('./routes/orders');
 const errorHandler = require('./middleware/errorHandler');
 const requestLogger = require('./middleware/requestLogger');
 const { generalLimiter } = require('./middleware/rateLimiter');
@@ -31,6 +32,7 @@ app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
 app.use('/', imageRoutes);
 app.use('/logs', logRoutes);
+app.use('/orders', orderRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });

@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import { useStore } from '@nanostores/preact';
 import {
   cartItems,
@@ -65,6 +66,36 @@ function FreeShippingMeter({ total }: { total: number }) {
 export default function CartContents({ whatsappNumber }: Props) {
   const items = useStore(cartItems);
   const total = useStore(cartTotal);
+  const [submitting, setSubmitting] = useState(false);
+
+  const confirmPurchase = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            product_id: i.productId,
+            variant_id: i.variantId,
+            name:
+              i.variantTitle && i.variantTitle !== 'Default Title'
+                ? `${i.title} (${i.variantTitle})`
+                : i.title,
+            quantity: i.qty,
+            price: i.price,
+          })),
+          total_amount: total,
+        }),
+      });
+    } catch {
+      // Order logging is best-effort — never block the WhatsApp checkout.
+    } finally {
+      setSubmitting(false);
+      window.open(whatsappOrderUrl(whatsappNumber), '_blank', 'noopener');
+    }
+  };
 
   if (!items.length) {
     return (
@@ -140,14 +171,14 @@ export default function CartContents({ whatsappNumber }: Props) {
           <dd class="font-medium">{formatPrice(total)}</dd>
         </dl>
         <p class="mt-2 text-xs text-stone">Envío y confirmación por WhatsApp.</p>
-        <a
-          href={whatsappOrderUrl(whatsappNumber)}
-          target="_blank"
-          rel="noopener"
-          class="mt-6 block bg-ink px-6 py-4 text-center text-sm tracking-widest text-cream uppercase transition-opacity hover:opacity-90"
+        <button
+          type="button"
+          onClick={confirmPurchase}
+          disabled={submitting}
+          class="mt-6 block w-full bg-ink px-6 py-4 text-center text-sm tracking-widest text-cream uppercase transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          Pedir por WhatsApp
-        </a>
+          {submitting ? 'Confirmando…' : 'Confirmar compra'}
+        </button>
         <a
           href="/shop"
           class="mt-3 block border border-ink px-6 py-4 text-center text-sm tracking-widest uppercase transition-colors hover:bg-ink hover:text-cream"
