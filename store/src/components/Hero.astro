@@ -1,15 +1,19 @@
 ---
+import { Image, getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 import type { ProductImage as ProductImageType } from '../lib/types';
 import ProductImage from './ProductImage.astro';
 import { imageUrl } from '../lib/format';
 
 interface Props {
-  image: ProductImageType | null;
+  image: ProductImageType | ImageMetadata | null;
   videoUrl?: string | null;
 }
 
 const { image, videoUrl = null } = Astro.props;
-const posterUrl = imageUrl(image) ?? undefined;
+const posterUrl = image && 'format' in image
+  ? (await getImage({ src: image, width: 1920 })).src
+  : imageUrl(image) ?? undefined;
 ---
 
 <section class="relative flex h-[85svh] min-h-[480px] items-end overflow-hidden bg-bone">
@@ -27,14 +31,25 @@ const posterUrl = imageUrl(image) ?? undefined;
     </video>
   ) : (
     <div class="absolute inset-0">
-      <ProductImage
-        image={image}
-        alt="Nueva colección Alquimia"
-        loading="eager"
-        widths={[640, 1024, 1440, 1920]}
-        sizes="100vw"
-        class="h-full w-full object-cover"
-      />
+      {image && 'format' in image ? (
+        <Image
+          src={image}
+          alt="Nueva colección Alquimia"
+          loading="eager"
+          widths={[640, 1024, 1440, 1920]}
+          sizes="100vw"
+          class="h-full w-full object-cover"
+        />
+      ) : (
+        <ProductImage
+          image={image}
+          alt="Nueva colección Alquimia"
+          loading="eager"
+          widths={[640, 1024, 1440, 1920]}
+          sizes="100vw"
+          class="h-full w-full object-cover"
+        />
+      )}
     </div>
   )}
 

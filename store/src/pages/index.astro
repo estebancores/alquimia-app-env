@@ -6,7 +6,8 @@ import ProductCard from '../components/ProductCard.astro';
 import ApiErrorNotice from '../components/ApiErrorNotice.astro';
 import { getCategories, getNewArrivals } from '../lib/api';
 import { organizationJsonLd, websiteJsonLd, itemListJsonLd } from '../lib/jsonld';
-import { imageUrl } from '../lib/format';
+import { getImage } from 'astro:assets';
+import heroAsset from '../assets/heroimage.jpg';
 import type { Category, Product } from '../lib/types';
 
 const siteUrl = (Astro.site ?? new URL(Astro.url.origin)).href.replace(/\/$/, '');
@@ -20,8 +21,10 @@ try {
   apiError = true;
 }
 
-const heroImage = arrivals[0]?.images[0] ?? null;
+const heroImage = heroAsset;
 const heroVideo = import.meta.env.PUBLIC_HERO_VIDEO_URL || null;
+const heroOg = await getImage({ src: heroAsset, width: 1200 });
+const heroOgUrl = new URL(heroOg.src, siteUrl).href;
 
 const jsonLd = [
   organizationJsonLd(siteUrl),
@@ -34,7 +37,9 @@ const jsonLd = [
   title="Alquimia — Cuidado personal y belleza"
   description="Descubre la selección Alquimia: cuidado personal y belleza con lo esencial, elevado. Nuevas llegadas cada semana."
   canonical="/"
-  ogImage={imageUrl(heroImage)}
+  ogImage={heroOgUrl}
+  ogImageWidth={heroOg.attributes.width as number}
+  ogImageHeight={heroOg.attributes.height as number}
   jsonLd={jsonLd}
 >
   {apiError ? (
