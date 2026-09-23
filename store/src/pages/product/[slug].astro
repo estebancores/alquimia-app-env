@@ -1,5 +1,7 @@
 ---
+import { Image } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import pagosImg from '../../assets/pagos.avif';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import ProductCard from '../../components/ProductCard.astro';
 import ApiErrorNotice from '../../components/ApiErrorNotice.astro';
@@ -130,7 +132,7 @@ const deliveryLabel = new Intl.DateTimeFormat('es-CO', {
                 </p>
               </div>
               <p class="mt-2 text-xs leading-relaxed text-taupe">
-                Fechas aproximadas en días hábiles. Puede variar según destino, confirmación de pago y transportadora.
+                Fechas aproximadas en días hábiles. Puede variar según destino, confirmación de pago y transportadora. Regularmente se entrega antes de la fecha indicada.
               </p>
             </div>
 
@@ -154,6 +156,13 @@ const deliveryLabel = new Intl.DateTimeFormat('es-CO', {
             >
               T&C de envíos y devoluciones
             </a>
+
+            <Image
+              src={pagosImg}
+              alt="Métodos de pago disponibles"
+              class="mt-6 h-auto w-full max-w-xs opacity-90"
+              loading="lazy"
+            />
 
             {product.body_html && (
               <details class="group mt-10 border-t border-sand pt-6">

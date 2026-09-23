@@ -26,7 +26,7 @@ export function organizationJsonLd(siteUrl: string) {
     legalName: SITE_LEGAL_NAME,
     description: SITE_TAGLINE,
     url: siteUrl,
-    logo: `${siteUrl}/favicon.svg`,
+    logo: `${siteUrl}/favicon-32.png`,
     currenciesAccepted: SITE_CURRENCY,
     areaServed: { '@type': 'Country', name: GEO_PLACENAME },
     address: { '@type': 'PostalAddress', addressCountry: GEO_REGION },
