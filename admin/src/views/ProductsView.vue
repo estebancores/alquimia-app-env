@@ -192,6 +192,40 @@ function cancelSelect() {
   selectedIds.value = [];
 }
 
+const bulkVisibility = ref(null); // 'visible' | 'hidden' | null — which batch op is running
+
+function bulkSetVisibility(visible) {
+  const count = selectedIds.value.length;
+  if (!count) return;
+  confirm.require({
+    message: `${visible ? 'Show' : 'Hide'} ${count} selected product${count > 1 ? 's' : ''} ${visible ? 'in' : 'from'} the store?`,
+    header: visible ? 'Confirm Show' : 'Confirm Hide',
+    icon: visible ? 'pi pi-eye' : 'pi pi-eye-slash',
+    accept: async () => {
+      bulkVisibility.value = visible ? 'visible' : 'hidden';
+      try {
+        const results = await Promise.allSettled(
+          selectedIds.value.map((id) => productStore.updateProduct(id, { public: visible }))
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        // Refetch so the list stays consistent with the active visibility filter.
+        await productStore.fetchProducts(buildParams(productStore.page));
+        toast.add({
+          severity: failed ? 'warn' : 'success',
+          summary: failed ? 'Partial update' : visible ? 'Visible' : 'Hidden',
+          detail: failed
+            ? `${count - failed} updated, ${failed} failed`
+            : `${count} product${count > 1 ? 's' : ''} ${visible ? 'shown in' : 'hidden from'} the store`,
+          life: 4000
+        });
+        cancelSelect();
+      } finally {
+        bulkVisibility.value = null;
+      }
+    }
+  });
+}
+
 async function copySelectedIds() {
   const count = selectedIds.value.length;
   if (!count) return;
@@ -277,9 +311,27 @@ onMounted(async () => {
         <template v-if="selectMode">
           <span class="text-sm text-color-secondary">{{ selectedIds.length }} selected</span>
           <Button
+            icon="pi pi-eye"
+            label="Show"
+            severity="secondary"
+            outlined
+            :disabled="!selectedIds.length || bulkVisibility != null"
+            :loading="bulkVisibility === 'visible'"
+            @click="bulkSetVisibility(true)"
+          />
+          <Button
+            icon="pi pi-eye-slash"
+            label="Hide"
+            severity="secondary"
+            outlined
+            :disabled="!selectedIds.length || bulkVisibility != null"
+            :loading="bulkVisibility === 'hidden'"
+            @click="bulkSetVisibility(false)"
+          />
+          <Button
             icon="pi pi-copy"
             label="Copy IDs"
-            :disabled="!selectedIds.length"
+            :disabled="!selectedIds.length || bulkVisibility != null"
             @click="copySelectedIds"
           />
           <Button icon="pi pi-times" label="Cancel" severity="secondary" outlined @click="cancelSelect" />

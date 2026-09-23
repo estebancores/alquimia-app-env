@@ -36,6 +36,10 @@ h1, h2, h3 {
   background: var(--color-sand);
 }
 
+summary::-webkit-details-marker {
+  display: none;
+}
+
 /* One-shot celebration pop (e.g. free-shipping badge) */
 @keyframes pop {
   0% { transform: scale(0.4); }

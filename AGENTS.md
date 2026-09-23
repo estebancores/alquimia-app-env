@@ -197,3 +197,4 @@ npm run build   # production build; npm start serves dist/server/entry.mjs
 - Stored `r2_url` values point to the private `*.r2.cloudflarestorage.com` endpoint; `imageUrl()` in `src/lib/format.ts` falls back to `original_src` (Shopify CDN).
 - Cart is client-only (nanostores + localStorage) and checkout generates a WhatsApp order link.
 - Client JS budget: only Preact islands (`src/islands/`) — keep static components in `src/components/`.
+- `ProductGallery` island: mobile swipe slider; desktop grid where each image opens a lightbox (click-to-zoom 2.2× with cursor-follow pan, ←/→/Esc nav, body scroll lock).

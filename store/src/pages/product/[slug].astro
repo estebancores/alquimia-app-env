@@ -43,6 +43,21 @@ const description = product
   : '';
 const mainImage = product?.images[0] ?? null;
 const price = product ? minPriceVariant(product)?.price : null;
+
+// Estimated delivery: ~8 business days from today (skips Sat/Sun).
+function businessDaysAhead(days: number): Date {
+  const d = new Date();
+  for (let remaining = days; remaining > 0; ) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) remaining--;
+  }
+  return d;
+}
+const deliveryLabel = new Intl.DateTimeFormat('es-CO', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+}).format(businessDaysAhead(8));
 ---
 
 <BaseLayout
@@ -77,18 +92,89 @@ const price = product ? minPriceVariant(product)?.price : null;
             )}
             <h1 class="mt-2 font-serif text-3xl leading-tight sm:text-4xl">{product.title}</h1>
 
+            <div class="mt-3 flex items-center gap-2">
+              <span class="relative inline-flex text-sand" aria-hidden="true">
+                {Array.from({ length: 5 }).map(() => (
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="size-4 shrink-0">
+                    <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z" />
+                  </svg>
+                ))}
+                <span class="absolute inset-0 flex overflow-hidden text-ink" style="width: 96%">
+                  {Array.from({ length: 5 }).map(() => (
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="size-4 shrink-0">
+                      <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z" />
+                    </svg>
+                  ))}
+                </span>
+              </span>
+              <span class="text-sm text-taupe">
+                <span class="font-medium text-ink">Excelente 4.8</span> | Reseñas verídicas
+              </span>
+            </div>
+
             <div class="mt-8">
               <AddToCart client:idle product={product} />
             </div>
 
+            <div class="mt-8 border border-sand bg-bone p-4">
+              <div class="flex items-center gap-3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6 shrink-0 text-ink" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                  <path stroke-linecap="round" d="M15 18H9" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14 8h4.6a1 1 0 0 1 .8.4l2.6 3.4a1 1 0 0 1 .2.6V17a1 1 0 0 1-1 1h-2" />
+                  <circle cx="7" cy="18" r="2" />
+                  <circle cx="18" cy="18" r="2" />
+                </svg>
+                <p class="text-sm text-ink">
+                  Entrega estimada: <span class="font-medium capitalize">{deliveryLabel}</span>
+                </p>
+              </div>
+              <p class="mt-2 text-xs leading-relaxed text-taupe">
+                Fechas aproximadas en días hábiles. Puede variar según destino, confirmación de pago y transportadora.
+              </p>
+            </div>
+
+            <ul class="mt-8 space-y-2.5 text-sm text-taupe">
+              {[
+                'Alta calidad y durabilidad.',
+                'Envíos a todo el país (aplica T&C).',
+                'Garantía de satisfacción.',
+              ].map((item) => (
+                <li class="flex items-center gap-2.5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4 shrink-0 text-ink" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7" />
+                  </svg>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <a
+              href="/terminos#envios-y-entregas"
+              class="mt-3 inline-block text-sm text-ink underline decoration-sand underline-offset-4 transition-colors hover:decoration-ink"
+            >
+              T&C de envíos y devoluciones
+            </a>
+
             {product.body_html && (
-              <section class="mt-10 border-t border-sand pt-8" aria-labelledby="detalles">
-                <h2 id="detalles" class="text-xs tracking-widest text-taupe uppercase">Detalles</h2>
+              <details class="group mt-10 border-t border-sand pt-6">
+                <summary class="flex cursor-pointer list-none items-center justify-between">
+                  <span class="text-xs tracking-widest text-taupe uppercase">Detalles</span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    class="size-4 shrink-0 text-ink transition-transform duration-200 group-open:rotate-45"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+                  </svg>
+                </summary>
                 <div
                   class="prose-sm mt-4 max-w-none text-sm leading-relaxed text-taupe [&_a]:underline"
                   set:html={product.body_html}
                 />
-              </section>
+              </details>
             )}
           </div>
         </article>
