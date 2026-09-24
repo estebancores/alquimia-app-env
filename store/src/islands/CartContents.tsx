@@ -71,10 +71,21 @@ export default function CartContents({ whatsappNumber }: Props) {
   const confirmPurchase = async () => {
     if (submitting) return;
     setSubmitting(true);
+    window.posthog?.capture('checkout_started', {
+      item_count: items.reduce((count, item) => count + item.qty, 0),
+      unique_product_count: items.length,
+      value: total,
+      currency: 'COP',
+    });
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    const distinctId = window.posthog?.get_distinct_id();
+    const sessionId = window.posthog?.get_session_id();
+    if (distinctId) headers['X-POSTHOG-DISTINCT-ID'] = distinctId;
+    if (sessionId) headers['X-POSTHOG-SESSION-ID'] = sessionId;
     try {
-      await fetch('/api/orders', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers,
         body: JSON.stringify({
           items: items.map((i) => ({
             product_id: i.productId,
@@ -89,7 +100,9 @@ export default function CartContents({ whatsappNumber }: Props) {
           total_amount: total,
         }),
       });
-    } catch {
+      if (!response.ok) throw new Error('Order API request failed');
+    } catch (error) {
+      window.posthog?.captureException(error);
       // Order logging is best-effort — never block the WhatsApp checkout.
     } finally {
       setSubmitting(false);
@@ -152,7 +165,16 @@ export default function CartContents({ whatsappNumber }: Props) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => removeFromCart(item.variantId)}
+                  onClick={() => {
+                    window.posthog?.capture('cart_item_removed', {
+                      product_id: item.productId,
+                      variant_id: item.variantId,
+                      quantity: item.qty,
+                      value: item.price * item.qty,
+                      currency: 'COP',
+                    });
+                    removeFromCart(item.variantId);
+                  }}
                   class="text-xs text-stone underline hover:text-ink"
                 >
                   Eliminar

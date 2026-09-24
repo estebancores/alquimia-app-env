@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly API_BASE_URL: string;
   readonly PUBLIC_SITE_URL: string;
   readonly PUBLIC_WHATSAPP_NUMBER: string;
+  readonly PUBLIC_POSTHOG_PROJECT_TOKEN?: string;
+  readonly PUBLIC_POSTHOG_HOST?: string;
   readonly PUBLIC_HERO_VIDEO_URL?: string;
   /** Geo targeting (defaults: CO / Colombia). */
   readonly PUBLIC_GEO_REGION?: string;
@@ -18,4 +20,9 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+interface Window {
+  __posthog_initialized?: boolean;
+  posthog?: import('posthog-js').PostHog;
 }

@@ -38,6 +38,13 @@ export default function AddToCart({ product }: Props) {
       price: Number(selected.price),
       image: imageUrl(variantImage),
     });
+    window.posthog?.capture('product_added_to_cart', {
+      product_id: product.id,
+      variant_id: selected.id,
+      product_type: product.product_type,
+      value: Number(selected.price),
+      currency: 'COP',
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

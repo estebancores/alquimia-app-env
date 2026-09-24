@@ -33,10 +33,18 @@ export default function FilterBar({
   const apply = (patch: Record<string, string | null>, basePath?: string) => {
     const params = new URLSearchParams(window.location.search);
     params.delete('page'); // filters reset pagination
-    for (const [key, value] of Object.entries(patch)) {
+    const entries = Object.entries(patch);
+    for (const [key, value] of entries) {
       if (value == null || value === '') params.delete(key);
       else params.set(key, value);
     }
+    const [filterKey, filterValue] = entries[0] ?? ['category', null];
+    const filterType = entries.length > 1 ? 'multiple' : filterKey;
+    window.posthog?.capture('product_filter_applied', {
+      filter_type: filterType,
+      is_clearing: basePath === '/shop' || (entries.length > 0 && entries.every(([, value]) => !value)),
+      ...(filterType === 'sort' ? { sort_option: filterValue } : {}),
+    });
     const qs = params.toString();
     window.location.assign(`${basePath ?? window.location.pathname}${qs ? `?${qs}` : ''}`);
   };
