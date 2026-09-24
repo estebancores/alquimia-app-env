@@ -40,6 +40,16 @@ summary::-webkit-details-marker {
   display: none;
 }
 
+/* Tailwind 4 preflight no longer sets pointer cursors on interactive elements */
+@layer base {
+  button:not(:disabled),
+  [role='button'],
+  select,
+  summary {
+    cursor: pointer;
+  }
+}
+
 /* One-shot celebration pop (e.g. free-shipping badge) */
 @keyframes pop {
   0% { transform: scale(0.4); }
