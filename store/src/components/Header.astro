@@ -7,6 +7,7 @@ import Logo from '../assets/logo.svg';
 import type { Category } from '../lib/types';
 
 const announcement = `Envío gratis por compras mayores a ${formatPrice(FREE_SHIPPING_THRESHOLD)}`;
+const searchQuery = Astro.url.searchParams.get('search') ?? '';
 
 let categories: Category[] = [];
 try {
@@ -38,17 +39,55 @@ try {
     </a>
 
     <div class="flex items-center gap-4">
-      <form action="/shop" method="get" role="search" class="hidden items-center gap-2 border-b border-sand sm:flex">
+      <form action="/shop" method="get" role="search" data-search-form class="hidden items-center gap-2 border-b border-sand sm:flex">
         <input
           type="search"
           name="search"
           placeholder="Buscar"
           aria-label="Buscar productos"
+          value={searchQuery}
           class="w-32 bg-transparent py-1 text-sm outline-none placeholder:text-stone focus:w-44 transition-all"
         />
+        <button type="submit" aria-label="Buscar" class="p-1 text-taupe transition-colors hover:text-ink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </button>
       </form>
+      <button
+        type="button"
+        data-search-toggle
+        aria-expanded="false"
+        aria-controls="mobile-search"
+        aria-label="Buscar"
+        class="p-1 text-ink sm:hidden"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+      </button>
       <CartIndicator client:idle transition:persist />
     </div>
+  </div>
+  <div id="mobile-search" hidden class="border-t border-sand px-gutter py-3 sm:hidden">
+    <form action="/shop" method="get" role="search" data-search-form class="mx-auto flex w-[95%] items-center gap-2 border-b border-sand">
+      <input
+        type="search"
+        name="search"
+        placeholder="Buscar"
+        aria-label="Buscar productos"
+        value={searchQuery}
+        class="w-full bg-transparent py-1 text-sm outline-none placeholder:text-stone"
+      />
+      <button type="submit" aria-label="Buscar" class="p-1 text-taupe transition-colors hover:text-ink">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+      </button>
+    </form>
   </div>
 </header>
 
@@ -67,3 +106,23 @@ try {
     </ul>
   </div>
 </nav>
+
+<script>
+  // Delegated listeners survive ClientRouter swaps without rebinding.
+  document.addEventListener('click', (e) => {
+    const toggle = (e.target as Element).closest('[data-search-toggle]');
+    const panel = document.getElementById('mobile-search');
+    if (!toggle || !panel) return;
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    if (opening) panel.querySelector<HTMLInputElement>('input')?.focus();
+  });
+
+  document.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-search-form')) return;
+    const term = new FormData(form).get('search')?.toString().trim();
+    if (term) window.posthog?.capture('product_searched', { search_term: term });
+  });
+</script>
