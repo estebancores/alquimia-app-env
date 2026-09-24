@@ -8,6 +8,7 @@ import {
   removeFromCart,
   setQty,
   whatsappOrderUrl,
+  type CartItem,
 } from '../stores/cart';
 import { formatPrice } from '../lib/format';
 
@@ -67,6 +68,17 @@ export default function CartContents({ whatsappNumber }: Props) {
   const items = useStore(cartItems);
   const total = useStore(cartTotal);
   const [submitting, setSubmitting] = useState(false);
+
+  const removeItem = (item: CartItem) => {
+    window.posthog?.capture('cart_item_removed', {
+      product_id: item.productId,
+      variant_id: item.variantId,
+      quantity: item.qty,
+      value: item.price * item.qty,
+      currency: 'COP',
+    });
+    removeFromCart(item.variantId);
+  };
 
   const confirmPurchase = async () => {
     if (submitting) return;
@@ -165,16 +177,7 @@ export default function CartContents({ whatsappNumber }: Props) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    window.posthog?.capture('cart_item_removed', {
-                      product_id: item.productId,
-                      variant_id: item.variantId,
-                      quantity: item.qty,
-                      value: item.price * item.qty,
-                      currency: 'COP',
-                    });
-                    removeFromCart(item.variantId);
-                  }}
+                  onClick={() => removeItem(item)}
                   class="text-xs text-stone underline hover:text-ink"
                 >
                   Eliminar
