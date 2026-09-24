@@ -12,6 +12,10 @@ const createValidators = [
   body('items.*.quantity').isInt({ min: 1, max: 999 }).toInt(),
   body('items.*.price').optional({ values: 'null' }).isDecimal(),
   body('total_amount').optional({ values: 'null' }).isDecimal(),
+  body('email').optional({ values: 'falsy' }).isEmail().normalizeEmail(),
+  body('whatsapp').optional({ values: 'falsy' }).trim().isLength({ max: 32 }),
+  body('address').optional({ values: 'falsy' }).trim(),
+  body('status').optional().isIn(ORDER_STATUSES),
 ];
 
 const listValidators = [
@@ -23,7 +27,15 @@ const listValidators = [
 const updateValidators = [
   body('email').optional({ values: 'falsy' }).isEmail().normalizeEmail(),
   body('whatsapp').optional({ values: 'falsy' }).trim().isLength({ max: 32 }),
+  body('address').optional({ values: 'falsy' }).trim(),
   body('status').optional().isIn(ORDER_STATUSES),
+  body('items').optional().isArray({ min: 1, max: 100 }),
+  body('items.*.product_id').notEmpty().isUUID(),
+  body('items.*.variant_id').optional({ values: 'falsy' }).isUUID(),
+  body('items.*.name').notEmpty().trim(),
+  body('items.*.quantity').isInt({ min: 1, max: 999 }).toInt(),
+  body('items.*.price').optional({ values: 'null' }).isDecimal(),
+  body('total_amount').optional({ values: 'null' }).isDecimal(),
 ];
 
 const deliveryValidators = [

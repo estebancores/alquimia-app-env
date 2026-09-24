@@ -100,6 +100,18 @@ unfiltered data (the admin uses the unfiltered variant).
 the store-visibility switch: the product editor has a Visible/Hidden toggle and the
 products list has a Visibility filter, a "Hidden" badge, and a per-card eye toggle.
 
+### Orders
+
+`POST /orders` (public) is called by the `store/` checkout ("Confirmar compra" → same-origin
+`store/src/pages/api/orders.ts` proxy, which attaches `x-internal-key`). Body:
+`{ items: [{ product_id, variant_id?, name, quantity, price? }], total_amount? }` — the server
+recomputes `total_items`/`total_amount` from items when `total_amount` is absent.
+
+Admin endpoints (auth required): `GET /orders`, `GET /orders/:id`, `PUT /orders/:id`
+(email/whatsapp/address/status/items — items recompute totals), `PUT /orders/:id/delivery`
+(upserts the order's `delivery_orders` row: status/delivery_date/address/notes). List/get
+responses join the delivery as `delivery_id`/`delivery_status`/`delivery_date`/etc.
+
 ### Rate limiting
 
 `src/middleware/rateLimiter.js` applies `generalLimiter` (1000 req / 15 min per IP)

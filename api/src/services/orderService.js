@@ -28,10 +28,13 @@ class OrderService {
 
     const [order] = await db('orders')
       .insert({
+        email: payload.email || null,
+        whatsapp: payload.whatsapp || null,
+        address: payload.address || null,
         items: JSON.stringify(items),
         total_items: totalItems,
         total_amount: totalAmount,
-        status: 'pending',
+        status: payload.status || 'pending',
       })
       .returning('*');
     return order;
@@ -70,7 +73,18 @@ class OrderService {
     const updates = { updated_at: new Date() };
     if (payload.email !== undefined) updates.email = payload.email || null;
     if (payload.whatsapp !== undefined) updates.whatsapp = payload.whatsapp || null;
+    if (payload.address !== undefined) updates.address = payload.address || null;
     if (payload.status !== undefined) updates.status = payload.status;
+    if (payload.items !== undefined) {
+      const items = this.normalizeItems(payload.items);
+      updates.items = JSON.stringify(items);
+      updates.total_items = items.reduce((sum, i) => sum + i.quantity, 0);
+      updates.total_amount = payload.total_amount != null
+        ? Number(payload.total_amount)
+        : items.reduce((sum, i) => sum + (i.price ?? 0) * i.quantity, 0);
+    } else if (payload.total_amount !== undefined) {
+      updates.total_amount = Number(payload.total_amount);
+    }
 
     const [updated] = await db('orders').where({ id }).update(updates).returning('*');
     return updated ?? null;
