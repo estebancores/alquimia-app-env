@@ -1,6 +1,9 @@
 <template>
   <div>
-    <h1 class="text-2xl font-semibold mb-4">Orders & Delivery</h1>
+    <div class="flex align-items-center justify-content-between mb-4">
+      <h1 class="text-2xl font-semibold m-0">Orders & Delivery</h1>
+      <Button label="New Order" icon="pi pi-plus" @click="openNewOrderDialog" />
+    </div>
 
     <Card>
       <template #title>Orders</template>
@@ -21,9 +24,10 @@
           </Column>
           <Column header="Customer">
             <template #body="{ data }">
-              <div v-if="data.whatsapp || data.email">
+              <div v-if="data.whatsapp || data.email || data.address">
                 <div v-if="data.whatsapp">{{ data.whatsapp }}</div>
                 <div v-if="data.email" class="text-sm text-color-secondary">{{ data.email }}</div>
+                <div v-if="data.address" class="text-sm text-color-secondary">{{ data.address }}</div>
               </div>
               <span v-else class="text-color-secondary">Sin datos</span>
             </template>
@@ -50,7 +54,7 @@
           </Column>
           <Column header="Actions" class="w-14rem">
             <template #body="{ data }">
-              <Button icon="pi pi-user" class="p-button-sm p-button-text" label="Contact" @click="openOrderDialog(data)" />
+              <Button icon="pi pi-pencil" class="p-button-sm p-button-text" label="Edit" @click="openOrderDialog(data)" />
               <Button icon="pi pi-calendar" class="p-button-sm p-button-text" label="Schedule" @click="openDeliveryDialog(data)" />
             </template>
           </Column>
@@ -67,7 +71,7 @@
       </template>
     </Card>
 
-    <Dialog v-model:visible="orderDialogVisible" header="Customer & Status" :style="{ width: '25rem' }" modal>
+    <Dialog v-model:visible="orderDialogVisible" :header="selectedOrderId ? 'Edit Order' : 'New Order'" :style="{ width: '32rem' }" modal>
       <div class="flex flex-column gap-3">
         <div class="flex flex-column gap-2">
           <label for="email">Email</label>
@@ -76,6 +80,40 @@
         <div class="flex flex-column gap-2">
           <label for="whatsapp">WhatsApp</label>
           <InputText id="whatsapp" v-model="orderForm.whatsapp" />
+        </div>
+        <div class="flex flex-column gap-2">
+          <label for="address">Address</label>
+          <InputText id="address" v-model="orderForm.address" />
+        </div>
+        <div class="flex flex-column gap-2">
+          <label>Products</label>
+          <div v-for="(item, i) in orderForm.items" :key="i" class="flex align-items-center gap-2">
+            <span class="flex-1 text-sm">{{ item.name }}</span>
+            <InputNumber
+              v-model="item.quantity"
+              :min="1"
+              :max="999"
+              show-buttons
+              button-layout="horizontal"
+              input-class="w-4rem text-center"
+            />
+            <Button
+              icon="pi pi-times"
+              class="p-button-sm p-button-text p-button-danger"
+              @click="orderForm.items.splice(i, 1)"
+            />
+          </div>
+          <p v-if="!orderForm.items.length" class="text-sm text-color-secondary m-0">No products in this order.</p>
+          <Dropdown
+            v-model="newProduct"
+            :options="productStore.products"
+            option-label="title"
+            filter
+            placeholder="Add product…"
+            class="w-full"
+            @change="addProductToOrder"
+          />
+          <small class="text-color-secondary">Total: {{ formatMoney(orderFormTotal) }}</small>
         </div>
         <div class="flex flex-column gap-2">
           <label for="orderStatus">Status</label>
@@ -108,7 +146,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
@@ -117,16 +155,20 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
 import { useOrderStore } from '@/stores/order';
+import { useProductStore } from '@/stores/product';
 
 const toast = useToast();
 const orderStore = useOrderStore();
+const productStore = useProductStore();
 
 const expandedRows = ref([]);
 const orderDialogVisible = ref(false);
 const deliveryDialogVisible = ref(false);
 const selectedOrderId = ref(null);
+const newProduct = ref(null);
 
 const orderStatusOptions = [
   { label: 'Pending', value: 'pending' },
@@ -144,8 +186,38 @@ const deliveryStatusOptions = [
 const orderForm = reactive({
   email: '',
   whatsapp: '',
-  status: 'pending'
+  address: '',
+  status: 'pending',
+  items: []
 });
+
+const orderFormTotal = computed(() =>
+  orderForm.items.reduce((sum, i) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
+);
+
+function minProductPrice(product) {
+  const priced = (product.variants || []).filter((v) => v.price != null);
+  if (!priced.length) return null;
+  return Number(priced.reduce((min, v) => (Number(v.price) < Number(min.price) ? v : min)).price);
+}
+
+function addProductToOrder() {
+  const product = newProduct.value;
+  if (!product) return;
+  const existing = orderForm.items.find((i) => i.product_id === product.id);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    orderForm.items.push({
+      product_id: product.id,
+      variant_id: null,
+      name: product.title,
+      quantity: 1,
+      price: minProductPrice(product)
+    });
+  }
+  newProduct.value = null;
+}
 
 const deliveryForm = reactive({
   deliveryDate: '',
@@ -181,18 +253,45 @@ function openOrderDialog(order) {
   selectedOrderId.value = order.id;
   orderForm.email = order.email || '';
   orderForm.whatsapp = order.whatsapp || '';
+  orderForm.address = order.address || '';
   orderForm.status = order.status;
+  orderForm.items = (order.items || []).map((i) => ({ ...i }));
+  newProduct.value = null;
+  if (!productStore.products.length) {
+    productStore.fetchProducts({ limit: 100 }).catch(() => {});
+  }
+  orderDialogVisible.value = true;
+}
+
+function openNewOrderDialog() {
+  selectedOrderId.value = null;
+  orderForm.email = '';
+  orderForm.whatsapp = '';
+  orderForm.address = '';
+  orderForm.status = 'pending';
+  orderForm.items = [];
+  newProduct.value = null;
+  if (!productStore.products.length) {
+    productStore.fetchProducts({ limit: 100 }).catch(() => {});
+  }
   orderDialogVisible.value = true;
 }
 
 async function saveOrder() {
-  if (!selectedOrderId.value) return;
+  if (!orderForm.items.length) {
+    toast.add({ severity: 'warn', summary: 'Invalid', detail: 'The order needs at least one product', life: 3000 });
+    return;
+  }
   try {
-    await orderStore.updateOrder(selectedOrderId.value, { ...orderForm });
-    toast.add({ severity: 'success', summary: 'Saved', detail: 'Order updated', life: 3000 });
+    if (selectedOrderId.value) {
+      await orderStore.updateOrder(selectedOrderId.value, { ...orderForm });
+    } else {
+      await orderStore.createOrder({ ...orderForm });
+    }
+    toast.add({ severity: 'success', summary: 'Saved', detail: 'Order saved', life: 3000 });
     orderDialogVisible.value = false;
   } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not update the order', life: 3000 });
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not save the order', life: 3000 });
   }
 }
 

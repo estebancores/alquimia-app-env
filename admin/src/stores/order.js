@@ -7,6 +7,10 @@ export const useOrderStore = defineStore('order', {
     loading: false
   }),
 
+  getters: {
+    pendingDeliveries: (state) => state.orders.filter((o) => o.delivery_status !== 'delivered')
+  },
+
   actions: {
     async fetchOrders() {
       this.loading = true;
@@ -16,6 +20,12 @@ export const useOrderStore = defineStore('order', {
       } finally {
         this.loading = false;
       }
+    },
+
+    async createOrder(payload) {
+      const { data } = await api.post('/orders', payload);
+      this.orders.unshift(data.data);
+      return data.data;
     },
 
     async updateOrder(orderId, payload) {

@@ -14,7 +14,7 @@
         <Card>
           <template #title>Pending Deliveries</template>
           <template #content>
-            <div class="text-4xl font-bold">{{ orderStore.pendingDeliveries.length }}</div>
+            <div class="text-4xl font-bold">{{ orderStore.pendingDeliveries?.length }}</div>
           </template>
         </Card>
       </div>
