@@ -56,11 +56,10 @@ const title = listing?.state.search
 >
   <div class="mx-auto w-[95%] px-gutter py-10">
     <Breadcrumbs crumbs={crumbs} />
-    <h1 class="mt-6 font-serif text-4xl sm:text-5xl">{title}</h1>
 
     {listing ? (
       <>
-        <div class="mt-8">
+        <div class="mt-6">
           <CategoryGrid categories={categories} variant="strip" activeSlug="shop" />
         </div>
 
@@ -78,7 +77,9 @@ const title = listing?.state.search
           />
         </div>
 
-        <p class="mt-6 text-xs tracking-wide text-stone">
+        <h1 class="mt-8 font-serif text-4xl sm:text-5xl">{title}</h1>
+
+        <p class="mt-4 text-xs tracking-wide text-stone">
           {listing.result.pagination.total} productos
         </p>
 

@@ -33,9 +33,21 @@ try {
       </div>
     </div>
   </div>
-  <div class="mx-auto flex w-[95%] items-center justify-between gap-6 px-gutter py-4">
-    <a href="/" class="shrink-0" aria-label="Alquimia — inicio">
-      <Logo class="h-16 w-auto md:h-20" />
+  <div class="relative mx-auto flex w-[95%] items-center justify-between px-gutter py-4">
+    <button
+      type="button"
+      data-nav-open
+      aria-expanded="false"
+      aria-controls="mobile-nav"
+      aria-label="Abrir menú"
+      class="-ml-1 p-1 text-ink sm:hidden"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </svg>
+    </button>
+    <a href="/" class="shrink-0 max-sm:absolute max-sm:left-1/2 max-sm:-translate-x-1/2" aria-label="Alquimia — inicio">
+      <Logo class="h-10 w-auto max-sm:max-w-[38vw] sm:h-16 sm:max-w-none md:h-20" />
     </a>
 
     <div class="flex items-center gap-4">
@@ -93,7 +105,35 @@ try {
 
 <!-- Outside <header> on purpose: a sticky element can't out-stick its parent,
      so the nav must be a sibling to remain pinned after the logo scrolls away. -->
-<nav aria-label="Categorías" class="sticky top-0 z-40 border-y border-sand bg-white">
+<div id="mobile-nav" hidden class="sm:hidden">
+  <div data-nav-close class="fixed inset-0 z-50 bg-ink/40" aria-hidden="true"></div>
+  <aside
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menú"
+    class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl"
+  >
+    <div class="flex items-center justify-between border-b border-sand px-5 py-4">
+      <span class="text-[11px] tracking-widest uppercase text-taupe">Menú</span>
+      <button type="button" data-nav-close aria-label="Cerrar menú" class="p-1 text-ink">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-5" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
+    <ul class="flex flex-col px-5 py-2 text-base text-ink">
+      <li><a href="/shop" class="block border-b border-sand/60 py-3">Todo</a></li>
+      {categories.map((cat) => (
+        <li>
+          <a href={`/${cat.slug}`} class="block border-b border-sand/60 py-3">{cat.name}</a>
+        </li>
+      ))}
+      <li><a href="/sale" class="block py-3 font-medium text-red-600">Descuentos</a></li>
+    </ul>
+  </aside>
+</div>
+
+<nav aria-label="Categorías" class="sticky top-0 z-40 hidden border-y border-sand bg-white sm:block">
   <div class="mx-auto w-[95%] overflow-x-auto px-gutter">
     <ul class="flex items-center gap-6 py-2.5 text-sm tracking-wide whitespace-nowrap text-taupe">
       <li><a href="/shop" class="transition-colors hover:text-ink">Todo</a></li>
@@ -117,6 +157,32 @@ try {
     panel.hidden = !opening;
     toggle.setAttribute('aria-expanded', String(opening));
     if (opening) panel.querySelector<HTMLInputElement>('input')?.focus();
+  });
+
+  const closeNav = () => {
+    const nav = document.getElementById('mobile-nav');
+    if (!nav || nav.hidden) return;
+    nav.hidden = true;
+    document.body.style.overflow = '';
+    document.querySelector('[data-nav-open]')?.setAttribute('aria-expanded', 'false');
+  };
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as Element;
+    const nav = document.getElementById('mobile-nav');
+    if (!nav) return;
+    const openBtn = target.closest('[data-nav-open]');
+    if (openBtn) {
+      nav.hidden = false;
+      document.body.style.overflow = 'hidden';
+      openBtn.setAttribute('aria-expanded', 'true');
+      return;
+    }
+    if (target.closest('[data-nav-close]') || target.closest('#mobile-nav a')) closeNav();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeNav();
   });
 
   document.addEventListener('submit', (e) => {

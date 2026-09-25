@@ -70,9 +70,8 @@ const hasFilters = Boolean(
     {listing && productType ? (
       <>
         <Breadcrumbs crumbs={crumbs} />
-        <h1 class="mt-6 font-serif text-4xl sm:text-5xl">{productType}</h1>
 
-        <div class="mt-8">
+        <div class="mt-6">
           <CategoryGrid categories={categories} variant="strip" activeSlug={slug} />
         </div>
 
@@ -90,7 +89,9 @@ const hasFilters = Boolean(
           />
         </div>
 
-        <p class="mt-6 text-xs tracking-wide text-stone">
+        <h1 class="mt-8 font-serif text-4xl sm:text-5xl">{productType}</h1>
+
+        <p class="mt-4 text-xs tracking-wide text-stone">
           {listing.result.pagination.total} productos
         </p>
 

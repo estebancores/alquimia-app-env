@@ -49,11 +49,10 @@ const title = 'Descuentos';
 >
   <div class="mx-auto w-[95%] px-gutter py-10">
     <Breadcrumbs crumbs={crumbs} />
-    <h1 class="mt-6 font-serif text-4xl sm:text-5xl">{title}</h1>
 
     {listing ? (
       <>
-        <div class="sticky top-10.5 z-10 -mx-gutter mt-8 border-y border-sand bg-cream px-gutter py-3">
+        <div class="sticky top-10.5 z-10 -mx-gutter mt-6 border-y border-sand bg-cream px-gutter py-3">
           <FilterBar
             client:visible
             meta={listing.meta}
@@ -66,7 +65,9 @@ const title = 'Descuentos';
           />
         </div>
 
-        <p class="mt-6 text-xs tracking-wide text-stone">
+        <h1 class="mt-8 font-serif text-4xl sm:text-5xl">{title}</h1>
+
+        <p class="mt-4 text-xs tracking-wide text-stone">
           {listing.result.pagination.total} productos
         </p>
 
