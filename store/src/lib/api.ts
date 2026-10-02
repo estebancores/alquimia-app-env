@@ -34,6 +34,32 @@ const cache = new Map<string, { expires: number; data: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 const errorCache = new Map<string, { expires: number; error: ApiError }>();
 const ERROR_TTL_MS = 5_000;
+// Keys include arbitrary search/filter/page query strings, so the caches must
+// be bounded: least-recently-used entries are evicted past this size and
+// expired entries are swept every minute.
+const MAX_CACHE_ENTRIES = 200;
+
+function remember<V>(map: Map<string, V>, key: string, value: V): void {
+  map.delete(key);
+  map.set(key, value);
+  if (map.size > MAX_CACHE_ENTRIES) map.delete(map.keys().next().value as string);
+}
+
+function lookup<V extends { expires: number }>(map: Map<string, V>, key: string): V | undefined {
+  const entry = map.get(key);
+  if (!entry) return undefined;
+  map.delete(key);
+  if (entry.expires <= Date.now()) return undefined;
+  map.set(key, entry);
+  return entry;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const map of [cache, errorCache]) {
+    for (const [key, entry] of map) if (entry.expires <= now) map.delete(key);
+  }
+}, 60_000).unref();
 
 async function request<T>(url: string, ttlMs: number): Promise<T> {
   const controller = new AbortController();
@@ -55,7 +81,7 @@ async function request<T>(url: string, ttlMs: number): Promise<T> {
       0,
       url,
     );
-    errorCache.set(url, { expires: Date.now() + ERROR_TTL_MS, error });
+    remember(errorCache, url, { expires: Date.now() + ERROR_TTL_MS, error });
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -63,22 +89,22 @@ async function request<T>(url: string, ttlMs: number): Promise<T> {
 
   if (!res.ok) {
     const error = new ApiError(`API responded ${res.status}`, res.status, url);
-    errorCache.set(url, { expires: Date.now() + ERROR_TTL_MS, error });
+    remember(errorCache, url, { expires: Date.now() + ERROR_TTL_MS, error });
     throw error;
   }
   const body = (await res.json()) as { success: boolean; data: T; pagination?: unknown };
   if (!body.success) throw new ApiError('API returned success: false', res.status, url);
 
-  cache.set(url, { expires: Date.now() + ttlMs, data: body });
+  remember(cache, url, { expires: Date.now() + ttlMs, data: body });
   return body as unknown as T;
 }
 
 async function fetchJson<T>(path: string, ttlMs = 60_000): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const cached = cache.get(url);
-  if (cached && cached.expires > Date.now()) return cached.data as T;
-  const errHit = errorCache.get(url);
-  if (errHit && errHit.expires > Date.now()) throw errHit.error;
+  const cached = lookup(cache, url);
+  if (cached) return cached.data as T;
+  const errHit = lookup(errorCache, url);
+  if (errHit) throw errHit.error;
 
   let pending = inflight.get(url) as Promise<T> | undefined;
   if (!pending) {

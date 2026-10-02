@@ -35,6 +35,37 @@ export function imageUrl(image: ProductImage | null | undefined): string | null 
   return image.original_src ?? null;
 }
 
+/**
+ * `src`/`srcset` for a remote product image, resized by the origin CDN instead
+ * of this server. Shopify's CDN resizes (and negotiates WebP/AVIF) on the fly
+ * via `?width=`; other hosts (e.g. public R2) are served as-is. Widths above
+ * the intrinsic width are dropped since the CDN never upscales.
+ */
+export function responsiveImage(
+  src: string,
+  widths: number[],
+  intrinsicWidth?: number | null,
+): { src: string; srcset?: string } {
+  let url: URL;
+  try {
+    url = new URL(src);
+  } catch {
+    return { src };
+  }
+  if (url.hostname !== 'cdn.shopify.com' && !url.pathname.startsWith('/cdn/shop/')) return { src };
+
+  const fitting = intrinsicWidth ? widths.filter((w) => w <= intrinsicWidth) : widths;
+  const usable = fitting.length ? fitting : [intrinsicWidth ?? Math.min(...widths)];
+  const at = (w: number) => {
+    url.searchParams.set('width', String(w));
+    return url.toString();
+  };
+  return {
+    src: at(usable.at(-1)!),
+    srcset: usable.map((w) => `${at(w)} ${w}w`).join(', '),
+  };
+}
+
 /** Cheapest variant with a price, used for card/list price display. */
 export function minPriceVariant(product: Product): ProductVariant | null {
   const priced = product.variants.filter((v) => v.price != null);

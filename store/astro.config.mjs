@@ -16,7 +16,21 @@ export default defineConfig({
   site: process.env.PUBLIC_SITE_URL || 'https://alquimia.up.railway.app',
   output: 'server',
   adapter: node({ mode: 'standalone' }),
-  integrations: [preact({ compat: false })],
+  integrations: [
+    preact({ compat: false }),
+    {
+      // Swap in the cached, serialized /_image endpoint for production builds
+      // (dev keeps Astro's own endpoint, which resolves /@fs source paths).
+      name: 'cached-image-endpoint',
+      hooks: {
+        'astro:config:setup': ({ command, updateConfig }) => {
+          if (command === 'build') {
+            updateConfig({ image: { endpoint: { entrypoint: './src/lib/imageEndpoint.ts' } } });
+          }
+        },
+      },
+    },
+  ],
   // Built-in prefetch (replaces the deprecated @astrojs/prefetch integration).
   // 'hover': pages prefetch on hover/tap intent only. 'viewport' prefetched
   // every visible link, and since each SSR render costs several API calls, a
@@ -25,10 +39,9 @@ export default defineConfig({
     prefetchAll: true,
     defaultStrategy: 'hover',
   },
-  image: {
-    // Product images live on Cloudflare R2 (and occasionally Shopify CDN).
-    remotePatterns: [{ protocol: 'https' }],
-  },
+  // No image.remotePatterns: remote product images are resized by their CDN
+  // (see responsiveImage in src/lib/format.ts), and allowing any https host
+  // let anyone make this server download + transform arbitrary images.
   vite: {
     plugins: [tailwindcss()],
   },

@@ -1,7 +1,6 @@
 ---
-import { Image } from 'astro:assets';
 import type { ProductImage as ProductImageType } from '../lib/types';
-import { imageUrl } from '../lib/format';
+import { imageUrl, responsiveImage } from '../lib/format';
 
 interface Props {
   image: ProductImageType | null | undefined;
@@ -21,21 +20,25 @@ const {
   class: className = 'h-full w-full object-cover',
 } = Astro.props;
 
-const src = imageUrl(image);
-// astro:assets needs intrinsic dimensions for remote images; the scraper
-// stores them when available, otherwise fall back to a 4:5 editorial ratio.
+// Plain <img> on purpose: astro:assets would route remote images through the
+// server's /_image endpoint (download + sharp transform per request), which
+// was the store's main memory sink. The CDN resizes instead.
+const url = imageUrl(image);
+const responsive = url ? responsiveImage(url, [...widths].sort((a, b) => a - b), image?.width) : null;
+// The scraper stores intrinsic dimensions when available, otherwise fall back
+// to a 4:5 editorial ratio (width/height attributes prevent layout shift).
 const width = image?.width ?? 800;
 const height = image?.height ?? 1000;
 ---
 
-{src ? (
-  <Image
-    src={src}
+{responsive ? (
+  <img
+    src={responsive.src}
+    srcset={responsive.srcset}
+    sizes={responsive.srcset ? sizes : undefined}
     alt={alt}
     width={width}
     height={height}
-    widths={widths}
-    sizes={sizes}
     loading={loading}
     decoding="async"
     class={className}

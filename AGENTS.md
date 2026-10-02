@@ -207,6 +207,8 @@ npm run build   # production build; npm start serves dist/server/entry.mjs
 - Product-by-slug uses `GET /products?search=<handle>` + exact handle match (API has no by-handle endpoint).
 - Listings use cumulative "load more": `?page=N` renders pages 1..N (each page request cached separately, so deeper pages only fetch the newest chunk). `LoadMore.astro` renders the counter + button; its `data-keep-scroll` link + `astro:after-swap` handler restores scrollY so the viewport doesn't move when products append.
 - Stored `r2_url` values point to the private `*.r2.cloudflarestorage.com` endpoint; `imageUrl()` in `src/lib/format.ts` falls back to `original_src` (Shopify CDN).
+- Product images are plain `<img>` with a CDN-resized `srcset` (`responsiveImage()` in `src/lib/format.ts`, Shopify `?width=`). Never route remote images through `astro:assets` — runtime sharp transforms of multi-MB originals was the main RAM sink; `image.remotePatterns` is intentionally unset (so `/_image` rejects remote URLs with 403).
+- Local assets (`src/assets/`) still use `astro:assets`; production builds swap in `src/lib/imageEndpoint.ts` as the `/_image` endpoint (byte-bounded LRU of transformed output, single-flight, one sharp transform at a time). The API cache in `src/lib/api.ts` is an LRU capped at 200 entries with a 60s expiry sweep.
 - Cart is client-only (nanostores + localStorage) and checkout generates a WhatsApp order link.
 - Client JS budget: only Preact islands (`src/islands/`) — keep static components in `src/components/`.
 - `ProductGallery` island: mobile swipe slider; desktop grid where each image opens a lightbox (click-to-zoom 2.2× with cursor-follow pan, ←/→/Esc nav, body scroll lock).
