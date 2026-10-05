@@ -154,10 +154,10 @@ export default function ProductGallery({ images, variants, title }: Props) {
         <div
           ref={trackRef}
           onScroll={onScroll}
-          class="flex snap-x snap-mandatory overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:size-0"
+          class="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain scrollbar-none [&::-webkit-scrollbar]:size-0"
         >
           {ordered.map((image, i) => (
-            <div key={image.id} class="aspect-4/5 w-full shrink-0 snap-center">
+            <div key={image.id} class="aspect-4/5 w-full shrink-0 snap-center snap-always">
               {slide(image, i, BIG_WIDTHS, '100vw')}
             </div>
           ))}
